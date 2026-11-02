@@ -53,8 +53,39 @@ let data = load();
 let cfg = {};
 try { cfg = JSON.parse(localStorage.getItem(SYNC_KEY)) || {}; } catch { /* no saved sync settings */ }
 
-const ui = { tab: 'today', cycleBack: 0, category: null };
+const ui = { tab: 'today', cycleBack: 0, category: null, firstPaint: true };
 let syncText = '';
+
+// Monogram tiles in approximate brand colours; glyph marks exist only for brands in the CC0 Simple Icons set.
+const BRANDS = [
+  ['maybank', 'Maybank', 'bank', '#ffc72c', '#000', 'MB'], ['cimb', 'CIMB', 'bank', '#d81a21', '#fff', 'CIMB'],
+  ['public', 'Public Bank', 'bank', '#c8102e', '#fff', 'PB'], ['rhb', 'RHB', 'bank', '#0067b1', '#fff', 'RHB'],
+  ['hongleong', 'Hong Leong', 'bank', '#00338d', '#fff', 'HL'], ['ambank', 'AmBank', 'bank', '#d7141a', '#fff', 'Am'],
+  ['bankislam', 'Bank Islam', 'bank', '#b5121b', '#fff', 'BI'], ['rakyat', 'Bank Rakyat', 'bank', '#00598c', '#fff', 'BR'],
+  ['bsn', 'BSN', 'bank', '#123a8c', '#fff', 'BSN'], ['affin', 'Affin Bank', 'bank', '#00539b', '#fff', 'AF'],
+  ['alliance', 'Alliance Bank', 'bank', '#00416a', '#fff', 'AL'], ['ocbc', 'OCBC', 'bank', '#e4002b', '#fff', 'OCBC'],
+  ['hsbc', 'HSBC', 'bank', '#fff', '#db0011', 'HSBC', 'hsbc'], ['uob', 'UOB', 'bank', '#0a3a7e', '#fff', 'UOB'],
+  ['stanchart', 'Standard Chartered', 'bank', '#0473ea', '#fff', 'SC'], ['gxbank', 'GXBank', 'bank', '#5b2ee5', '#fff', 'GX'],
+  ['boostbank', 'Boost Bank', 'bank', '#e8232a', '#fff', 'BB'], ['aeon', 'AEON Bank', 'bank', '#b60081', '#fff', 'AE'],
+  ['ryt', 'Ryt Bank', 'bank', '#111', '#fff', 'Ryt'], ['kaf', 'KAF Digital', 'bank', '#14532d', '#fff', 'KAF'],
+  ['tng', "Touch 'n Go", 'ewallet', '#0a4ea2', '#fff', 'TNG'], ['grabpay', 'GrabPay', 'ewallet', '#00b14f', '#fff', 'Grab', 'grab'],
+  ['shopeepay', 'ShopeePay', 'ewallet', '#ee4d2d', '#fff', 'SPay', 'shopee'], ['boost', 'Boost', 'ewallet', '#e8232a', '#fff', 'Bo'],
+  ['mae', 'MAE', 'ewallet', '#ffc72c', '#000', 'MAE'], ['bigpay', 'BigPay', 'ewallet', '#2b2d8f', '#fff', 'BP'],
+  ['setel', 'Setel', 'ewallet', '#00a19c', '#fff', 'St'],
+].map(([id, name, kind, bg, fg, mono, glyph]) => ({ id, name, kind, bg, fg, mono, glyph }));
+const brandOf = id => BRANDS.find(b => b.id === id);
+
+const KIND_ICONS = { bank: 'i-bank', card: 'i-card', ewallet: 'i-accounts', save: 'i-target' };
+const COMMITMENT_ICONS = { 'house-loan': 'i-house', 'car-loan': 'c-transport', 'house-rental': 'i-key', 'health-insurance': 'i-shield', subscriptions: 'i-repeat', instalments: 'i-layers' };
+const svg = id => `<svg class="icon" aria-hidden="true"><use href="#${id}"/></svg>`;
+const plainTile = id => `<span class="tile">${svg(id)}</span>`;
+
+function brandTile(b) {
+  const mark = b.glyph ? `<svg class="icon fill" aria-hidden="true"><use href="#b-${b.glyph}"/></svg>` : `<span class="mono" data-len="${Math.min(b.mono.length, 4)}">${esc(b.mono)}</span>`;
+  return `<span class="tile" style="background:${b.bg};color:${b.fg}" aria-hidden="true">${mark}</span>`;
+}
+
+const accountTile = a => (brandOf(a.brand) ? brandTile(brandOf(a.brand)) : plainTile(KIND_ICONS[a.type]));
 
 const isSetup = () => data.plans.length > 0;
 const hasCommitments = () => data.commitments.some(c => c.amount > 0);
@@ -96,7 +127,7 @@ function badge(categoryId, name) {
   return `<span class="badge" aria-hidden="true">${esc((name || '?').slice(0, 1).toUpperCase())}</span>`;
 }
 
-const moveBadge = (icon, kind) => `<span class="badge" data-cat="${kind}"><svg class="icon" aria-hidden="true"><use href="#${icon}"/></svg></span>`;
+const moveBadge = (icon, kind) => `<span class="badge" data-cat="${kind}">${svg(icon)}</span>`;
 
 function entryRow(t) {
   const title = t.type === 'spend' ? (t.note || categoryName(t.categoryId))
@@ -107,7 +138,7 @@ function entryRow(t) {
     : 'Moved, not spending';
   const amount = t.type === 'income' ? `+${money(t.amount)}` : money(t.amount);
   const mark = t.type === 'spend' ? badge(t.categoryId, categoryName(t.categoryId))
-    : t.type === 'income' ? moveBadge('i-add', 'in') : moveBadge('i-next', 'move');
+    : t.type === 'income' ? moveBadge('i-add', 'in') : moveBadge('i-swap', 'move');
   return `<li><button class="row" data-act="edit" data-id="${esc(t.id)}">
     ${mark}
     <span class="row-main"><span class="row-title">${esc(title)}</span><span class="row-sub">${esc(where)}</span></span>
@@ -121,6 +152,7 @@ const entries = () => data.tx.filter(t => t.type !== 'adjust').sort(byNewest);
 function accountCard(a, bal) {
   const type = { bank: 'Bank', card: 'Credit card', ewallet: 'E-wallet' }[a.type];
   return `<li><button class="acct" data-type="${a.type}" data-act="account" data-id="${esc(a.id)}">
+    ${accountTile(a)}
     <span class="acct-main"><span class="acct-name">${esc(a.name)}</span><span class="acct-type">${type}</span></span>
     <span class="acct-balance">${money(bal)}</span>
   </button></li>`;
@@ -143,7 +175,7 @@ function hero(s, today) {
     </div>
     <p class="pace-row">
       <span class="pace-word" data-pace="${s.pace.state}">${PACE_WORDS[s.pace.state]}</span>
-      <span>${payday ? 'Payday today' : `${s.days} ${dayWord} to payday`}</span>
+      <span>${payday ? 'Payday today, fresh cycle' : `${s.days} ${dayWord} to payday`}</span>
     </p>
   </section>`;
 }
@@ -168,7 +200,8 @@ function viewToday() {
   if (!isReady()) {
     const count = openAccounts().length;
     const pay = isSetup() ? summary(data, today) : null;
-    const step = (done, act, title, sub, off) => `<li><button class="acct step ${done ? '' : 'ghost'}" ${done ? 'data-type="bank"' : ''} data-act="${act}" ${off ? 'disabled' : ''}>
+    const step = (done, act, icon, title, sub, off) => `<li><button class="acct step ${done ? '' : 'ghost'}" ${done ? 'data-type="bank"' : ''} data-act="${act}" ${off ? 'disabled' : ''}>
+      ${plainTile(icon)}
       <span class="acct-main"><span class="acct-name">${title}</span><span class="acct-type">${esc(sub)}</span></span>
       <svg class="icon" aria-hidden="true"><use href="#i-${done ? 'check' : 'next'}"/></svg>
       ${done ? '<span class="visually-hidden">Done</span>' : ''}
@@ -176,9 +209,9 @@ function viewToday() {
     return `<div class="topline"><h1>Set up your wallet</h1>${warning}</div>
     <p class="hero-sub">Three steps, then your left to spend appears here.</p>
     <ol class="stack">
-      ${step(isSetup(), 'salary', 'Salary and payday', pay ? `${money(pay.salary)}, payday on day ${data.meta.payday}` : 'What lands in your bank each month')}
-      ${step(count > 0, 'account', 'Your accounts', count ? `${count} added. Tap to add another.` : 'Your bank, cards and e-wallets')}
-      ${step(hasCommitments(), 'commitments', 'Monthly commitments', isSetup() ? 'Loans, rental, insurance and more' : 'Add your salary first', !isSetup())}
+      ${step(isSetup(), 'salary', 'i-cash', 'Salary and payday', pay ? `${money(pay.salary)}, payday on day ${data.meta.payday}` : 'What lands in your bank each month')}
+      ${step(count > 0, 'account', 'i-accounts', 'Your accounts', count ? `${count} added. Tap to add another.` : 'Your bank, cards and e-wallets')}
+      ${step(hasCommitments(), 'commitments', 'i-repeat', 'Monthly commitments', isSetup() ? 'Loans, rental, insurance and more' : 'Add your salary first', !isSetup())}
     </ol>`;
   }
 
@@ -186,11 +219,12 @@ function viewToday() {
   const { balances: bal } = balances(data, today);
   const leftover = s.leftover && s.left >= 0 && !data.dismissed[s.prior.start];
   const recent = entries().slice(0, 5);
-  return `<div class="topline quiet"><h1 class="visually-hidden">Today</h1><p class="date">${esc(asDate(today).toLocaleDateString('en-MY', { weekday: 'long', day: 'numeric', month: 'long' }))}</p>${warning}</div>
+  return `<div class="topline quiet"><h1 class="visually-hidden">Today</h1>${warning}</div>
   ${hero(s, today)}
 
   <ul class="stack">
     <li><button class="acct" data-type="save" data-act="savings">
+      ${plainTile(KIND_ICONS.save)}
       <span class="acct-main"><span class="acct-name">Suggested savings</span><span class="acct-type">${esc(savingsShort(s.savings))}</span></span>
       <span class="acct-balance">${money(s.savings.amount)}</span>
     </button></li>
@@ -198,7 +232,7 @@ function viewToday() {
   </ul>
 
   ${leftover ? `<div class="notice">
-    <p><b>${money(s.leftover)} left from last cycle.</b> Move it to savings?</p>
+    <p><b>You finished last cycle ${money(s.leftover)} under budget.</b> Move it to savings?</p>
     <div class="notice-actions">
       <button class="btn primary" data-act="move-leftover" data-amount="${s.leftover}">Move to savings</button>
       <button class="btn" data-act="dismiss-leftover" data-id="${esc(s.prior.start)}">Not now</button>
@@ -268,9 +302,9 @@ function viewAccounts() {
   return `<div class="topline"><h1>Accounts</h1></div>
   ${open.length ? `<ul class="stack">${open.map(a => accountCard(a, b.balances.get(a.id))).join('')}</ul>
   <button class="btn wide" data-act="account">Add account</button>` : `<ul class="stack">
-    <li><button class="acct ghost" data-act="account" data-kind="bank"><span class="acct-name">Add your bank</span><svg class="icon" aria-hidden="true"><use href="#i-add"/></svg></button></li>
-    <li><button class="acct ghost" data-act="account" data-kind="card"><span class="acct-name">Add a credit card</span><svg class="icon" aria-hidden="true"><use href="#i-add"/></svg></button></li>
-    <li><button class="acct ghost" data-act="account" data-kind="ewallet"><span class="acct-name">Add an e-wallet</span><svg class="icon" aria-hidden="true"><use href="#i-add"/></svg></button></li>
+    <li><button class="acct ghost" data-act="account" data-kind="bank">${plainTile(KIND_ICONS.bank)}<span class="acct-main"><span class="acct-name">Add your bank</span></span><svg class="icon" aria-hidden="true"><use href="#i-add"/></svg></button></li>
+    <li><button class="acct ghost" data-act="account" data-kind="card">${plainTile(KIND_ICONS.card)}<span class="acct-main"><span class="acct-name">Add a credit card</span></span><svg class="icon" aria-hidden="true"><use href="#i-add"/></svg></button></li>
+    <li><button class="acct ghost" data-act="account" data-kind="ewallet">${plainTile(KIND_ICONS.ewallet)}<span class="acct-main"><span class="acct-name">Add an e-wallet</span></span><svg class="icon" aria-hidden="true"><use href="#i-add"/></svg></button></li>
   </ul>`}
   ${b.spokenFor ? `<section class="block"><h2>Already spoken for</h2>
     <p class="spoken">${money(b.spokenFor)}</p>
@@ -314,6 +348,7 @@ function viewPlan() {
 
   ${setup ? `<section class="block"><h2>Commitments</h2>
     <ul class="rows">${current.map(c => `<li><button class="row" data-act="commitment" data-id="${esc(c.id)}">
+      ${plainTile(COMMITMENT_ICONS[slug(c.name)] ?? 'i-repeat')}
       <span class="row-main"><span class="row-title">${esc(c.name)}</span>
       <span class="row-sub">${c.amount ? `Day ${c.day}${c.accountId ? ` · ${esc(accountName(c.accountId))}` : ''}` : 'Not set'}</span></span>
       <span class="row-amount">${c.amount ? money(c.amount) : 'Add'}</span>
@@ -323,6 +358,7 @@ function viewPlan() {
 
   <section class="block"><ul class="rows">
     <li><button class="row" data-act="categories">
+      ${plainTile('i-tag')}
       <span class="row-main"><span class="row-title">Categories</span></span>
       <span class="row-amount">${data.categories.filter(c => !c.archived).length}</span>
     </button></li>
@@ -330,6 +366,7 @@ function viewPlan() {
 
   <section class="block"><ul class="rows">
     <li><button class="row" data-act="sync-settings">
+      ${plainTile('i-cloud')}
       <span class="row-main"><span class="row-title">Sync with GitHub</span>
       <span class="row-sub" id="sync-status" role="status">${esc(syncText || (cfg.token ? 'Connected' : 'Saved on this device only'))}</span></span>
     </button></li>
@@ -340,6 +377,12 @@ const VIEWS = { today: viewToday, spending: viewSpending, accounts: viewAccounts
 
 function render() {
   $('#view').innerHTML = VIEWS[ui.tab]();
+  const ready = isReady();
+  const justReady = ready && ui.ready === false;
+  $('#view').classList.toggle('deal', ui.tab === 'today' && ready && (ui.firstPaint || justReady));
+  ui.ready = ready;
+  ui.firstPaint = false;
+  if (justReady) toast('Your wallet is ready');
   document.querySelectorAll('.tabs [data-tab]').forEach(b => {
     if (b.dataset.tab === ui.tab) b.setAttribute('aria-current', 'page');
     else b.removeAttribute('aria-current');
@@ -348,15 +391,22 @@ function render() {
 
 /* The figure counts to its new value after an entry. */
 
-function rollFigure(from) {
+function rollFigure(from, fromPct, accountId) {
   const el = $('#figure');
   if (!el || from == null || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  const to = summary(data, localToday()).left;
+  const now = summary(data, localToday());
+  const fill = $('.pace-fill');
+  fill?.animate([{ width: `${fromPct}%` }, { width: `${now.pace.spentPct}%` }], { duration: 420, easing: 'cubic-bezier(.16, 1, .3, 1)' });
+  document.querySelector(`.acct[data-id="${CSS.escape(accountId)}"]`)?.animate(
+    [{ transform: 'none' }, { transform: 'translateY(-8px)', offset: .35 }, { transform: 'none' }],
+    { duration: 420, easing: 'cubic-bezier(.16, 1, .3, 1)' },
+  );
+  const to = now.left;
   if (from === to || (from < 0) !== (to < 0)) return;
   const start = performance.now();
   const final = el.textContent;
-  const step = now => {
-    const t = Math.min(1, (now - start) / 420);
+  const step = time => {
+    const t = Math.min(1, (time - start) / 420);
     const eased = 1 - (1 - t) ** 3;
     el.textContent = t < 1 ? figureText(from + (to - from) * eased) : final;
     if (t < 1) requestAnimationFrame(step);
@@ -484,15 +534,22 @@ function entrySheet(entry, preset = {}) {
         note: type === 'transfer' ? '' : f.get('note').trim(),
         updatedAt: Date.now(),
       };
-      const before = isReady() ? summary(data, localToday()).left : null;
+      const prior = isReady() ? summary(data, localToday()) : null;
       if (entry) Object.assign(entry, fields);
       else data.tx.push({ id: uid(), ...fields });
       commit();
-      if (ui.tab === 'today') rollFigure(before);
-      toast(entry ? 'Entry updated' : `Logged ${money(amount)}`);
+      if (ui.tab === 'today' && prior) rollFigure(prior.left, prior.pace.spentPct, fields.accountId);
+      toast(entry ? 'Entry updated' : preset.leftover ? `${money(amount)} moved to savings` : `Logged ${money(amount)}`);
     },
   });
 }
+
+const brandGrid = (kind, chosen) => `<div class="brands">
+  ${BRANDS.filter(b => b.kind === kind).map(b => `<label class="brand">
+    <input type="radio" name="brand" value="${b.id}" data-name="${esc(b.name)}" ${b.id === chosen ? 'checked' : ''}>
+    ${brandTile(b)}<span>${esc(b.name)}</span>
+  </label>`).join('')}
+</div>`;
 
 function accountSheet(account, kind) {
   const bal = account ? balances(data, localToday()).balances.get(account.id) : 0;
@@ -500,6 +557,8 @@ function accountSheet(account, kind) {
   const body = `
     <label class="field"><span class="field-label">Name</span><input name="name" autocomplete="off" value="${esc(account?.name)}"></label>
     ${segments('type', 'Account type', [['bank', 'Bank'], ['card', 'Credit card'], ['ewallet', 'E-wallet']], account?.type ?? kind ?? 'bank')}
+    <fieldset class="field not-ewallet"><legend class="field-label">Choose your bank</legend>${brandGrid('bank', account?.brand)}</fieldset>
+    <fieldset class="field only-ewallet"><legend class="field-label">Choose your e-wallet</legend>${brandGrid('ewallet', account?.brand)}</fieldset>
     <label class="field"><span class="field-label not-card">${account ? 'Correct balance' : 'Balance today'}</span>
       <span class="field-label only-card">${account ? 'Correct amount owed' : 'Amount owed today'}</span>
       <input name="balance" inputmode="decimal" autocomplete="off" value="${current > 0 ? inputAmount(current) : ''}" placeholder="0">
@@ -518,19 +577,27 @@ function accountSheet(account, kind) {
       if (!name) return ['name', 'Enter a name.'];
       if (Number.isNaN(amount)) return ['balance', 'Enter the balance as a number, for example 1200.50.'];
       const signed = type === 'card' ? -amount : amount;
+      const picked = brandOf(f.get('brand'));
+      const brand = picked && (picked.kind === 'ewallet') === (type === 'ewallet') ? picked.id : null;
       const now = Date.now();
       if (account) {
-        Object.assign(account, { name, type, updatedAt: now });
+        Object.assign(account, { name, type, brand, updatedAt: now });
         correctBalance(data, account.id, signed, localToday(), now);
       } else {
         const id = uid();
-        data.accounts.push({ id, name, type, opening: signed, addedOn: localToday(), archived: false, updatedAt: now });
+        data.accounts.push({ id, name, type, brand, opening: signed, addedOn: localToday(), archived: false, updatedAt: now });
         if (type === 'bank' && !data.meta.salaryAccountId) {
           data.meta = { ...data.meta, salaryAccountId: id, updatedAt: now };
         }
       }
       commit();
     },
+  });
+  const nameField = sheet.querySelector('[name="name"]');
+  sheet.querySelector('form').addEventListener('change', e => {
+    if (e.target.name !== 'brand') return;
+    const auto = BRANDS.some(b => b.name === nameField.value);
+    if (!nameField.value || auto) nameField.value = e.target.dataset.name;
   });
 }
 
@@ -649,6 +716,7 @@ function categoriesSheet() {
     saveLabel: 'Done',
     cancel: false,
     body: `<ul class="rows">${data.categories.filter(c => !c.archived).map(c => `<li><button type="button" class="row" data-act="category" data-id="${esc(c.id)}">
+      ${badge(c.id, c.name)}
       <span class="row-main"><span class="row-title">${esc(c.name)}</span></span>
     </button></li>`).join('')}</ul>
     <button type="button" class="btn wide" data-act="category">Add category</button>`,
@@ -740,7 +808,7 @@ const ACTIONS = {
   'sync-settings'() { syncSheet(); },
   cycle(el) { ui.cycleBack += Number(el.dataset.step); ui.category = null; render(); },
   filter(el) { ui.category = ui.category === el.dataset.id ? null : el.dataset.id; render(); },
-  'move-leftover'(el) { entrySheet(null, { type: 'transfer', amount: Number(el.dataset.amount) }); },
+  'move-leftover'(el) { entrySheet(null, { type: 'transfer', amount: Number(el.dataset.amount), leftover: true }); },
   'dismiss-leftover'(el) { data.dismissed[el.dataset.id] = true; commit(); },
   'delete-entry'(el) {
     const t = data.tx.find(x => x.id === el.dataset.id);
