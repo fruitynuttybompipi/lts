@@ -317,8 +317,8 @@ dialog .field select { background-color: var(--surface-up); }
 }
 .grow + .grow { border-top: 1px solid var(--line); }
 .grow > .tile { flex: none; }
-.grow > span:not(.tile) { flex: 1 1 8rem; min-width: 0; }
-.grow input[type="date"] { flex: 0 0 11rem; }
+.grow > span:not(.tile) { flex: 1 1 6rem; min-width: 0; }
+.grow input[type="date"] { flex: 0 0 12.5rem; }
 .grow input:not([type="checkbox"]), .grow select {
   flex: 1 1 5.5rem; min-width: 0; min-height: 44px;
   border: 0; border-radius: var(--s-2);
@@ -330,7 +330,7 @@ dialog .field select { background-color: var(--surface-up); }
 .grow input::placeholder { color: var(--text-soft); opacity: 1; }
 .grow select {
   padding-right: 22px;
-  flex: 1 1 10rem;
+  flex: 1 1 8rem;
   background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%23a1a1a6' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m3.5 6 4.5 4.5L12.5 6'/%3E%3C/svg%3E") no-repeat right center;
   text-overflow: ellipsis;
 }
