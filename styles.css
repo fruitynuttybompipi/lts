@@ -52,7 +52,7 @@ body {
   caret-color: var(--link);
 }
 
-::selection { background: var(--card-save); color: var(--text); }
+::selection { background: var(--text); color: var(--ground); }
 :focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
 h1, h2, p { margin: 0; }
 h1, h2 { text-wrap: balance; }
@@ -170,6 +170,10 @@ h1 { font-size: var(--t-title); line-height: 1.15; font-weight: 700; letter-spac
 .sum-group { background: var(--surface); border-radius: var(--r-card); padding: var(--s-2) var(--s-4); }
 dialog .sum-group { background: var(--surface-up); margin-top: var(--s-4); }
 dialog .sum-table th, dialog .sum-table td { border-color: var(--stroke); }
+
+details { margin-top: var(--s-5); }
+summary { min-height: 44px; display: flex; align-items: center; color: var(--link); cursor: pointer; list-style: none; }
+summary::-webkit-details-marker { display: none; }
 
 .spoken { font-size: var(--t-section); font-weight: 600; margin-bottom: var(--s-2); }
 
