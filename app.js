@@ -497,7 +497,8 @@ function openSheet({ title, body, save, saveLabel = 'Save', focus, cancel = true
     if (e.key === 'Enter' && e.target.matches('input:not([type="radio"]):not([type="checkbox"])')) { e.preventDefault(); submit(); }
   });
   if (!sheet.open) sheet.showModal();
-  if (focus) form.elements[focus].focus();
+  // Focus the sheet, not its first button, so opening never rings Cancel or Save.
+  (focus ? form.elements[focus] : sheet).focus();
 }
 
 const chips = (name, legend, items, chosen, extra = '') => `<fieldset class="field ${extra}">

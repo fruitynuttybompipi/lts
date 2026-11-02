@@ -439,6 +439,7 @@ dialog {
 dialog[open] { animation: sheet-up .28s cubic-bezier(.16, 1, .3, 1); }
 @keyframes sheet-up { from { transform: translateY(32px); opacity: 0; } }
 dialog::backdrop { background: var(--scrim); }
+dialog:focus-visible { outline: 0; }
 body:has(dialog[open]) { overflow: hidden; }
 
 .sheet-head {
@@ -574,7 +575,7 @@ form:not([data-type="card"]) .only-card { display: none; }
   <button data-act="tab" data-tab="accounts"><svg class="icon"><use href="#i-accounts"/></svg>Accounts</button>
   <button data-act="tab" data-tab="plan"><svg class="icon"><use href="#i-plan"/></svg>Plan</button>
 </nav>
-<dialog id="sheet" aria-labelledby="sheet-title"></dialog>
+<dialog id="sheet" aria-labelledby="sheet-title" tabindex="-1"></dialog>
 <div id="toast" role="status"></div>
 <script type="module">
 const mem=new Map();
@@ -1339,7 +1340,8 @@ function openSheet({ title, body, save, saveLabel = 'Save', focus, cancel = true
     if (e.key === 'Enter' && e.target.matches('input:not([type="radio"]):not([type="checkbox"])')) { e.preventDefault(); submit(); }
   });
   if (!sheet.open) sheet.showModal();
-  if (focus) form.elements[focus].focus();
+  // Focus the sheet, not its first button, so opening never rings Cancel or Save.
+  (focus ? form.elements[focus] : sheet).focus();
 }
 
 const chips = (name, legend, items, chosen, extra = '') => `<fieldset class="field ${extra}">
