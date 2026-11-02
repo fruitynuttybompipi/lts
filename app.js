@@ -110,7 +110,7 @@ function accountCard(a, bal) {
   const shown = owed ? Math.max(0, -bal) : bal;
   return `<li><button class="acct" data-type="${a.type}" data-act="account" data-id="${esc(a.id)}">
     <span><span class="acct-name">${esc(a.name)}</span><span class="acct-type">${type}</span></span>
-    <span class="acct-balance">${owed ? `${money(shown)} owed` : money(shown)}</span>
+    <span class="acct-balance">${owed ? `${money(shown)} <span class="acct-unit">owed</span>` : money(shown)}</span>
   </button></li>`;
 }
 
