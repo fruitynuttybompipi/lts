@@ -273,6 +273,7 @@ h1 { font-size: var(--t-title); line-height: 1.1; font-weight: 700; letter-spaci
 .sum-table td { text-align: right; white-space: nowrap; padding-left: var(--s-3); }
 .sum-table .total th, .sum-table .total td { color: var(--text); font-weight: 600; }
 .sum-group { background: var(--surface); border-radius: var(--r-card); padding: var(--s-2) var(--s-4); }
+dialog .rows { background: var(--surface-up); }
 dialog .sum-group { background: var(--surface-up); margin-top: var(--s-4); }
 dialog .sum-table th, dialog .sum-table td { border-color: var(--stroke); }
 
@@ -314,21 +315,12 @@ summary::-webkit-details-marker { display: none; }
 
 .field { display: block; margin-top: var(--s-4); }
 .field-label { display: block; font-size: var(--t-meta); font-weight: 600; margin-bottom: var(--s-1); }
-.field input, .field select {
-  width: 100%; min-height: 48px; padding: 0 var(--s-3);
-  border-radius: var(--r-control);
-  border: 1px solid var(--stroke);
-  background: var(--surface);
-  font-size: var(--t-body);
-  -webkit-appearance: none; appearance: none;
-}
-.field input::placeholder { color: var(--text-soft); opacity: 1; }
+.field input, .field input::placeholder { color: var(--text-soft); opacity: 1; }
 .field select {
   padding-right: 36px;
-  background: var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%23a1a1a6' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m3.5 6 4.5 4.5L12.5 6'/%3E%3C/svg%3E") no-repeat right 12px center;
+  background: var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%23b4b6be' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m3.5 6 4.5 4.5L12.5 6'/%3E%3C/svg%3E") no-repeat right 12px center;
 }
 dialog .field input { background: var(--surface-up); }
-dialog .field select { background-color: var(--surface-up); }
 .form-rows { margin-top: var(--s-3); }
 .grow {
   display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0 var(--s-3);
@@ -351,7 +343,7 @@ dialog .field select { background-color: var(--surface-up); }
 .grow select {
   padding-right: 22px;
   flex: 1 1 8rem;
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%23a1a1a6' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m3.5 6 4.5 4.5L12.5 6'/%3E%3C/svg%3E") no-repeat right center;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%23b4b6be' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m3.5 6 4.5 4.5L12.5 6'/%3E%3C/svg%3E") no-repeat right center;
   text-overflow: ellipsis;
 }
 dialog .form-rows { background: var(--surface-up); }

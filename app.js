@@ -381,7 +381,8 @@ function render() {
   $('#view').classList.toggle('deal', ui.tab === 'today' && ready && (ui.firstPaint || justReady));
   ui.ready = ready;
   ui.firstPaint = false;
-  document.body.dataset.pace = ready ? summary(data, localToday()).pace.state : 'calm';
+  // Only Today shows the pace in words beside it, so the glow means something only there.
+  document.body.dataset.pace = ready && ui.tab === 'today' ? summary(data, localToday()).pace.state : 'calm';
   if (justReady) toast('Your wallet is ready');
   document.querySelectorAll('.tabs [data-tab]').forEach(b => {
     if (b.dataset.tab === ui.tab) b.setAttribute('aria-current', 'page');
