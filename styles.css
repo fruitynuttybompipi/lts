@@ -119,7 +119,7 @@ h1 { font-size: var(--t-title); line-height: 1.1; font-weight: 700; letter-spaci
 .pace-fill { display: block; height: 100%; min-width: 8px; border-radius: 4px; background: var(--gain); transform-origin: 0 50%; }
 .pace[data-pace="fast"] .pace-fill { background: var(--caution); }
 .pace[data-pace="over"] .pace-fill { background: var(--alert); }
-.pace-now { position: absolute; top: -3px; width: 2px; height: 14px; margin-left: -1px; border-radius: 1px; background: var(--text); box-shadow: 0 0 0 1px var(--ground); }
+.pace-now { position: absolute; top: -3px; width: 2px; height: 14px; margin-left: -1px; background: var(--text); box-shadow: 0 0 0 1px var(--ground); }
 .pace-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0 var(--s-3); margin-top: var(--s-2); font-size: var(--t-meta); color: var(--text-soft); }
 .pace-word { font-weight: 600; color: var(--gain); }
 .pace-word[data-pace="fast"] { color: var(--caution); }
@@ -197,7 +197,7 @@ h1 { font-size: var(--t-title); line-height: 1.1; font-weight: 700; letter-spaci
 .mono[data-len="4"] { font-size: 10px; }
 .mono[data-len="1"], .mono[data-len="2"] { font-size: 14px; }
 
-.brands { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--s-2); }
+.brands { display: grid; grid-template-columns: repeat(auto-fill, minmax(4.75rem, 1fr)); gap: var(--s-2); }
 .brand { position: relative; display: grid; justify-items: center; align-content: start; gap: var(--s-1); padding: var(--s-2) 2px; border-radius: var(--r-control); text-align: center; font-size: .6875rem; line-height: 1.2; cursor: pointer; }
 .brand input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
 .brand:has(input:checked) { background: var(--surface-up); box-shadow: inset 0 0 0 2px var(--text); }
@@ -311,15 +311,16 @@ dialog .field input { background: var(--surface-up); }
 dialog .field select { background-color: var(--surface-up); }
 .form-rows { margin-top: var(--s-3); }
 .grow {
-  display: flex; justify-content: space-between; align-items: center; gap: var(--s-3);
+  display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0 var(--s-3);
   min-height: 52px;
+  padding: var(--s-1) 0;
 }
 .grow + .grow { border-top: 1px solid var(--line); }
 .grow > .tile { flex: none; }
-.grow > span:not(.tile) { flex: 1 1 auto; min-width: 0; }
-.grow:has(select) > span:not(.tile) { flex: none; }
+.grow > span:not(.tile) { flex: 1 1 8rem; min-width: 0; }
+.grow input[type="date"] { flex: 0 0 11rem; }
 .grow input:not([type="checkbox"]), .grow select {
-  flex: 0 1 46%; min-width: 0; min-height: 44px;
+  flex: 1 1 5.5rem; min-width: 0; min-height: 44px;
   border: 0; border-radius: var(--s-2);
   background: none;
   font-size: var(--t-body);
@@ -329,7 +330,7 @@ dialog .field select { background-color: var(--surface-up); }
 .grow input::placeholder { color: var(--text-soft); opacity: 1; }
 .grow select {
   padding-right: 22px;
-  flex: 1 1 0;
+  flex: 1 1 10rem;
   background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%23a1a1a6' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m3.5 6 4.5 4.5L12.5 6'/%3E%3C/svg%3E") no-repeat right center;
   text-overflow: ellipsis;
 }
@@ -341,7 +342,7 @@ dialog .grow + .grow { border-color: var(--stroke); }
 
 .grow input[type="checkbox"] {
   -webkit-appearance: none; appearance: none;
-  flex: none; position: relative; margin: 0;
+  flex: none; position: relative; margin: 0 0 0 auto;
   width: 51px; height: 31px;
   border-radius: 16px;
   background: var(--stroke);
@@ -451,7 +452,7 @@ fieldset.field { margin-top: var(--s-4); }
 .chips input { position: absolute; opacity: 0; inset: 0; margin: 0; }
 .chips .badge, .chips .tile { width: 28px; height: 28px; border-radius: 50%; }
 .chips .badge .icon, .chips .tile .icon { width: 16px; height: 16px; }
-.chips .mono { font-size: 9px !important; }
+.chips .tile .mono { font-size: 9px; }
 .chips input:checked + span .tile:not([style]) { background: rgb(0 0 0 / .1); color: var(--ground); }
 .chips label > span { display: flex; align-items: center; gap: var(--s-2); min-height: 44px; padding: 0 var(--s-4) 0 var(--s-2); border-radius: 22px; border: 1px solid var(--stroke); font-size: var(--t-meta); font-weight: 500; }
 .chips input:checked + span { background: var(--text); border-color: var(--text); color: var(--ground); font-weight: 600; }

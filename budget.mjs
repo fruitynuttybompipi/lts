@@ -1,5 +1,8 @@
 // Pure money logic. Amounts are integer sen; dates are local YYYY-MM-DD strings.
 
+// randomUUID needs a secure context; the fallback keeps saving working in sandboxed previews.
+export const uid = () => crypto.randomUUID?.() ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+
 const COLLECTIONS = ['accounts', 'commitments', 'categories', 'plans', 'tx'];
 export const START_PCT = 20;
 export const BUFFER_PCT = 10;
@@ -190,7 +193,7 @@ export function savePlan(data, patch, today, now) {
   const current = data.plans.find(p => p.from >= cycle.start);
   if (current) { Object.assign(current, patch, { updatedAt: now }); return; }
   const base = data.plans.length ? planFor(data, cycle) : { salary: 0, savePct: null };
-  data.plans.push({ ...base, ...patch, id: crypto.randomUUID(), from: cycle.start, updatedAt: now });
+  data.plans.push({ ...base, ...patch, id: uid(), from: cycle.start, updatedAt: now });
 }
 
 // Changes start at the current cycle; earlier cycles keep the old row.
@@ -204,7 +207,7 @@ export function changeCommitment(data, id, patch, today, now) {
   } else {
     c.to = start;
     c.updatedAt = now;
-    data.commitments.push({ ...c, ...patch, id: crypto.randomUUID(), from: start, to: null, updatedAt: now });
+    data.commitments.push({ ...c, ...patch, id: uid(), from: start, to: null, updatedAt: now });
   }
 }
 
@@ -223,7 +226,7 @@ export function endCommitment(data, id, today, now) {
 export function correctBalance(data, accountId, target, today, now) {
   const current = balances(data, today).balances.get(accountId);
   if (target === current) return;
-  data.tx.push({ id: crypto.randomUUID(), type: 'adjust', accountId, amount: target - current, date: today, updatedAt: now });
+  data.tx.push({ id: uid(), type: 'adjust', accountId, amount: target - current, date: today, updatedAt: now });
 }
 
 // Newest edit of each item wins, and deletions beat edits made before them.

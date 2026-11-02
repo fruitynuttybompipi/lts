@@ -1,5 +1,5 @@
 import {
-  addDays, balances, changeCommitment, correctBalance, cycleOf, cycleReport, endCommitment, localToday,
+  addDays, balances, uid, changeCommitment, correctBalance, cycleOf, cycleReport, endCommitment, localToday,
   merge, parseSen, planFor, prevCycle, savePlan, summary, BUFFER_PCT, FULL_CYCLES_NEEDED,
 } from './budget.mjs';
 
@@ -9,7 +9,6 @@ const DATA_FILE = 'finance.json';
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => `&#${c.charCodeAt(0)};`);
-const uid = () => crypto.randomUUID();
 const slug = s => s.toLowerCase().replace(/\W+/g, '-');
 
 const sign = n => (n < 0 ? '−' : '');
@@ -68,10 +67,10 @@ const BRANDS = [
   ['stanchart', 'Standard Chartered', 'bank', '#0473ea', '#fff', 'SC'], ['gxbank', 'GXBank', 'bank', '#5b2ee5', '#fff', 'GX'],
   ['boostbank', 'Boost Bank', 'bank', '#e8232a', '#fff', 'BB'], ['aeon', 'AEON Bank', 'bank', '#b60081', '#fff', 'AE'],
   ['ryt', 'Ryt Bank', 'bank', '#111', '#fff', 'Ryt'], ['kaf', 'KAF Digital', 'bank', '#14532d', '#fff', 'KAF'],
-  ['tng', "Touch 'n Go", 'ewallet', '#0a4ea2', '#fff', 'TNG'], ['grabpay', 'GrabPay', 'ewallet', '#00b14f', '#fff', 'Grab', 'grab'],
+  ['tng', "Touch 'n Go", 'ewallet', '#0a4ea2', '#fff', 'TNG'], ['grabpay', 'GrabPay', 'ewallet', '#00864b', '#fff', 'Grab', 'grab'],
   ['shopeepay', 'ShopeePay', 'ewallet', '#ee4d2d', '#fff', 'SPay', 'shopee'], ['boost', 'Boost', 'ewallet', '#e8232a', '#fff', 'Bo'],
   ['mae', 'MAE', 'ewallet', '#ffc72c', '#000', 'MAE'], ['bigpay', 'BigPay', 'ewallet', '#2b2d8f', '#fff', 'BP'],
-  ['setel', 'Setel', 'ewallet', '#00a19c', '#fff', 'St'],
+  ['setel', 'Setel', 'ewallet', '#007f7a', '#fff', 'St'],
 ].map(([id, name, kind, bg, fg, mono, glyph]) => ({ id, name, kind, bg, fg, mono, glyph }));
 const brandOf = id => BRANDS.find(b => b.id === id);
 
@@ -463,7 +462,7 @@ function openSheet({ title, body, save, saveLabel = 'Save', focus, cancel = true
     <div class="sheet-head">
       ${cancel ? '<button type="button" data-close>Cancel</button>' : '<span></span>'}
       <h2 id="sheet-title">${esc(title)}</h2>
-      <button class="save">${esc(saveLabel)}</button>
+      <button type="button" class="save">${esc(saveLabel)}</button>
     </div>
     <div class="sheet-body"><p class="error" id="sheet-error" role="alert"></p>${body}</div>
   </form>`;
@@ -471,8 +470,8 @@ function openSheet({ title, body, save, saveLabel = 'Save', focus, cancel = true
   const type = form.querySelector('[name="type"]:checked');
   if (type) form.dataset.type = type.value;
   form.addEventListener('change', e => { if (e.target.name === 'type') form.dataset.type = e.target.value; });
-  form.addEventListener('submit', e => {
-    e.preventDefault();
+  // Saves on click, not form submit: sandboxed previews block submit without any error.
+  const submit = () => {
     const problem = save(new FormData(form));
     form.querySelectorAll('[aria-invalid]').forEach(el => { el.removeAttribute('aria-invalid'); el.removeAttribute('aria-describedby'); });
     if (problem) {
@@ -487,6 +486,11 @@ function openSheet({ title, body, save, saveLabel = 'Save', focus, cancel = true
     } else {
       sheet.close();
     }
+  };
+  form.querySelector('.save').addEventListener('click', submit);
+  form.addEventListener('submit', e => { e.preventDefault(); submit(); });
+  form.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && e.target.matches('input:not([type="radio"]):not([type="checkbox"])')) { e.preventDefault(); submit(); }
   });
   if (!sheet.open) sheet.showModal();
   if (focus) form.elements[focus].focus();
@@ -898,11 +902,13 @@ sheet.addEventListener('close', () => {
 });
 
 // iOS keeps fixed elements behind the keyboard, so lift the sheet above it.
-window.visualViewport?.addEventListener('resize', () => {
+function fitSheet() {
   const v = window.visualViewport;
   sheet.style.bottom = `${Math.max(0, innerHeight - v.height - v.offsetTop)}px`;
   sheet.style.maxHeight = `${v.height - 8}px`;
-});
+}
+window.visualViewport?.addEventListener('resize', fitSheet);
+window.visualViewport?.addEventListener('scroll', fitSheet);
 
 document.addEventListener('change', e => {
   const form = e.target.closest('#plan-form');
