@@ -315,11 +315,15 @@ summary::-webkit-details-marker { display: none; }
 
 .field { display: block; margin-top: var(--s-4); }
 .field-label { display: block; font-size: var(--t-meta); font-weight: 600; margin-bottom: var(--s-1); }
-.field input, .field input::placeholder { color: var(--text-soft); opacity: 1; }
-.field select {
-  padding-right: 36px;
-  background: var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%23b4b6be' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m3.5 6 4.5 4.5L12.5 6'/%3E%3C/svg%3E") no-repeat right 12px center;
+.field input {
+  width: 100%; min-height: 48px; padding: 0 var(--s-3);
+  border-radius: var(--r-control);
+  border: 1px solid var(--stroke);
+  background: var(--surface);
+  font-size: var(--t-body);
+  -webkit-appearance: none; appearance: none;
 }
+.field input::placeholder { color: var(--text-soft); opacity: 1; }
 dialog .field input { background: var(--surface-up); }
 .form-rows { margin-top: var(--s-3); }
 .grow {
