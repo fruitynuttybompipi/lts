@@ -37,13 +37,18 @@
 [hidden] { display: none !important; }
 
 html { -webkit-text-size-adjust: 100%; scrollbar-color: var(--line) var(--ground); }
+/* Lets the iPhone text size setting scale every rem. */
+@supports (font: -apple-system-body) { html { font: -apple-system-body; } }
+
+.figure, .acct-balance, .row-amount, .spoken, .sheet-amount, .sum-table td, .hero-sub b, .cat-label, .grow input, .amount-field input {
+  font-variant-numeric: tabular-nums;
+}
 
 body {
   margin: 0;
   background: var(--ground);
   color: var(--text);
   font: 400 var(--t-body)/1.4 var(--ui);
-  font-variant-numeric: tabular-nums;
   caret-color: var(--link);
 }
 
@@ -91,7 +96,7 @@ h1 { font-size: var(--t-title); line-height: 1.15; font-weight: 700; letter-spac
 .hero[data-state="over"] .figure { color: var(--alert); }
 
 .hero-sub { color: var(--text-soft); }
-.hero-sub b { color: var(--text); font-weight: 600; }
+.hero-sub b { color: var(--text); font-weight: 600; white-space: nowrap; }
 .hero[data-state="over"] .hero-sub b { color: var(--alert); }
 
 /* Wallet stack */
@@ -127,10 +132,10 @@ h1 { font-size: var(--t-title); line-height: 1.15; font-weight: 700; letter-spac
   align-items: center;
 }
 .stack:has(.ghost) li + li { margin-top: var(--s-2); }
-.stack:has(.ghost) .acct { padding-bottom: var(--s-3); }
+.stack:has(.ghost) li .acct { padding-bottom: var(--s-3); }
 .acct.ghost .acct-type { color: var(--text-soft); }
 .acct.ghost:active { background: var(--surface); }
-.acct:disabled { opacity: .55; cursor: default; }
+.acct:disabled { color: var(--text-soft); cursor: default; }
 
 /* Sections */
 .block { margin-top: var(--s-6); }
@@ -181,7 +186,7 @@ dialog .sum-table th, dialog .sum-table td { border-color: var(--stroke); }
 .cat[aria-pressed="true"] .cat-label { color: var(--link); }
 .cat-label { display: flex; justify-content: space-between; gap: var(--s-3); margin-bottom: var(--s-1); }
 .cat-track { display: block; height: 6px; }
-.cat-bar { display: block; height: 6px; min-width: 6px; border-radius: 0 4px 4px 0; background: var(--card-save); }
+.cat-bar { display: block; height: 6px; min-width: 6px; border-radius: 0 4px 4px 0; background: var(--text); }
 
 /* Controls */
 .btn {
@@ -212,10 +217,33 @@ dialog .sum-table th, dialog .sum-table td { border-color: var(--stroke); }
 }
 dialog .field input { background: var(--surface-up); }
 dialog .field select { background-color: var(--surface-up); }
+.form-rows { margin-top: var(--s-3); }
+.grow {
+  display: flex; justify-content: space-between; align-items: center; gap: var(--s-3);
+  min-height: 52px;
+}
+.grow + .grow { border-top: 1px solid var(--line); }
+.grow > span { flex: 1 1 auto; min-width: 0; }
+.grow input:not([type="checkbox"]), .grow select {
+  flex: 0 1 46%; min-width: 0; min-height: 44px;
+  border: 0; border-radius: var(--s-2);
+  background: none;
+  font-size: var(--t-body);
+  text-align: right;
+  -webkit-appearance: none; appearance: none;
+}
+.grow input::placeholder { color: var(--text-soft); opacity: 1; }
+.grow select {
+  padding-right: 22px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%23a1a1a6' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m3.5 6 4.5 4.5L12.5 6'/%3E%3C/svg%3E") no-repeat right center;
+  text-overflow: ellipsis;
+}
+dialog .form-rows { background: var(--surface-up); }
+dialog .grow + .grow { border-color: var(--stroke); }
+.form-note { margin-top: var(--s-2); }
 .field-hint { display: block; margin-top: var(--s-1); font-size: var(--t-meta); color: var(--text-soft); }
 
-.switch-row { display: flex; justify-content: space-between; align-items: center; gap: var(--s-3); min-height: 48px; margin-top: var(--s-3); }
-.switch-row input {
+.grow input[type="checkbox"] {
   -webkit-appearance: none; appearance: none;
   flex: none; position: relative; margin: 0;
   width: 51px; height: 31px;
@@ -224,7 +252,7 @@ dialog .field select { background-color: var(--surface-up); }
   transition: background .2s;
   cursor: pointer;
 }
-.switch-row input::after {
+.grow input[type="checkbox"]::after {
   content: "";
   position: absolute; top: 2px; left: 2px;
   width: 27px; height: 27px;
@@ -233,8 +261,8 @@ dialog .field select { background-color: var(--surface-up); }
   box-shadow: 0 1px 3px rgb(0 0 0 / .3);
   transition: transform .2s cubic-bezier(.16, 1, .3, 1);
 }
-.switch-row input:checked { background: var(--card-wallet); }
-.switch-row input:checked::after { transform: translateX(20px); }
+.grow input[type="checkbox"]:checked { background: var(--card-wallet); }
+.grow input[type="checkbox"]:checked::after { transform: translateX(20px); }
 
 .error { color: var(--alert); font-size: var(--t-meta); margin-top: var(--s-2); }
 .error:empty { display: none; }
@@ -274,6 +302,8 @@ dialog {
   overflow: auto;
   overscroll-behavior: contain;
 }
+dialog[open] { animation: sheet-up .28s cubic-bezier(.16, 1, .3, 1); }
+@keyframes sheet-up { from { transform: translateY(32px); opacity: 0; } }
 dialog::backdrop { background: var(--scrim); }
 body:has(dialog[open]) { overflow: hidden; }
 
@@ -305,7 +335,7 @@ body:has(dialog[open]) { overflow: hidden; }
 .seg label { position: relative; flex: 1 1 30%; }
 .seg input { position: absolute; opacity: 0; inset: 0; margin: 0; }
 .seg span { display: grid; place-items: center; min-height: 44px; padding: 0 var(--s-2); border-radius: var(--s-2); font-size: var(--t-meta); font-weight: 500; }
-.seg input:checked + span { background: var(--stroke); color: var(--ground); font-weight: 600; }
+.seg input:checked + span { background: var(--text); color: var(--ground); font-weight: 600; }
 .seg input:focus-visible + span { outline: 2px solid var(--text); }
 
 fieldset.field { margin-top: var(--s-4); }
@@ -337,6 +367,15 @@ form:not([data-type="card"]) .only-card { display: none; }
 #toast.show { opacity: 1; transform: none; pointer-events: auto; }
 #toast button { min-height: 44px; color: var(--link); font-weight: 600; }
 
+.acct:active:not(:disabled), .btn:active, .tabs .add:active { filter: brightness(.82); }
+.row:active, .cat:active, .tabs button:not(.add):active, .sheet-head button:active { opacity: .6; }
+@media (hover: hover) {
+  .acct:hover:not(:disabled), .btn:hover, .tabs .add:hover { filter: brightness(1.12); }
+  .row:hover, .cat:hover { opacity: .85; }
+  .tabs button:not(.add):hover { color: var(--text); }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  #toast, .switch-row input, .switch-row input::after { transition: none; }
+  #toast, .grow input[type="checkbox"], .grow input[type="checkbox"]::after { transition: none; }
+  dialog[open] { animation: none; }
 }

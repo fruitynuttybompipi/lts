@@ -148,7 +148,7 @@ function viewToday() {
   if (!isReady()) {
     const count = openAccounts().length;
     const pay = isSetup() ? summary(data, today) : null;
-    const step = (done, type, act, title, sub, off) => `<li><button class="acct step ${done ? '' : 'ghost'}" ${done ? `data-type="${type}"` : ''} data-act="${act}" ${off ? 'disabled' : ''}>
+    const step = (done, act, title, sub, off) => `<li><button class="acct step ${done ? '' : 'ghost'}" ${done ? 'data-type="bank"' : ''} data-act="${act}" ${off ? 'disabled' : ''}>
       <span class="acct-main"><span class="acct-name">${title}</span><span class="acct-type">${esc(sub)}</span></span>
       <svg class="icon" aria-hidden="true"><use href="#i-${done ? 'check' : 'next'}"/></svg>
       ${done ? '<span class="visually-hidden">Done</span>' : ''}
@@ -156,9 +156,9 @@ function viewToday() {
     return `<div class="topline"><h1>Set up your wallet</h1>${warning}</div>
     <p class="hero-sub">Three steps, then your left to spend appears here.</p>
     <ol class="stack">
-      ${step(isSetup(), 'save', 'salary', 'Salary and payday', pay ? `${money(pay.salary)}, payday on day ${data.meta.payday}` : 'What lands in your bank each month')}
-      ${step(count > 0, 'ewallet', 'account', 'Your accounts', count ? `${count} added. Tap to add another.` : 'Your bank, cards and e-wallets')}
-      ${step(hasCommitments(), 'card', 'commitments', 'Monthly commitments', isSetup() ? 'Loans, rental, insurance and more' : 'Add your salary first', !isSetup())}
+      ${step(isSetup(), 'salary', 'Salary and payday', pay ? `${money(pay.salary)}, payday on day ${data.meta.payday}` : 'What lands in your bank each month')}
+      ${step(count > 0, 'account', 'Your accounts', count ? `${count} added. Tap to add another.` : 'Your bank, cards and e-wallets')}
+      ${step(hasCommitments(), 'commitments', 'Monthly commitments', isSetup() ? 'Loans, rental, insurance and more' : 'Add your salary first', !isSetup())}
     </ol>`;
   }
 
@@ -272,18 +272,20 @@ function viewPlan() {
   const current = setup ? data.commitments.filter(c => !c.to || c.to >= cycle.end).sort((a, b) => b.amount - a.amount) : [];
   return `<div class="topline"><h1>Plan</h1></div>
   <form id="plan-form" novalidate>
-    <label class="field"><span class="field-label">Take-home salary</span>
-      <input name="salary" inputmode="decimal" autocomplete="off" aria-describedby="plan-error" value="${setup ? inputAmount(plan.salary) : ''}" placeholder="RM"></label>
-    <label class="field"><span class="field-label">Payday, day of the month</span>
-      <input name="payday" inputmode="numeric" autocomplete="off" aria-describedby="plan-error" value="${data.meta.payday ?? ''}" placeholder="1 to 31"></label>
-    ${banks.length ? `<label class="field"><span class="field-label">Salary goes into</span>
-      <select name="salaryAccount"><option value="">Choose account</option>${banks.map(a => `<option value="${esc(a.id)}" ${a.id === data.meta.salaryAccountId ? 'selected' : ''}>${esc(a.name)}</option>`).join('')}</select></label>` : ''}
-    <label class="switch-row"><span>Suggest savings for me</span>
-      <input type="checkbox" name="auto" role="switch" ${pct == null ? 'checked' : ''}></label>
-    <label class="field" ${pct == null ? 'hidden' : ''} id="pct-field"><span class="field-label">Save this percentage of what's left after commitments</span>
-      <input name="pct" inputmode="numeric" autocomplete="off" aria-describedby="plan-error" value="${pct ?? 20}"></label>
+    <div class="rows form-rows">
+      <label class="grow"><span>Take-home salary</span>
+        <input name="salary" inputmode="decimal" autocomplete="off" aria-describedby="plan-error" value="${setup ? inputAmount(plan.salary) : ''}" placeholder="RM 0"></label>
+      <label class="grow"><span>Payday</span>
+        <input name="payday" inputmode="numeric" autocomplete="off" aria-describedby="plan-error" value="${data.meta.payday ?? ''}" placeholder="Day 1 to 31"></label>
+      ${banks.length ? `<label class="grow"><span>Salary goes into</span>
+        <select name="salaryAccount"><option value="">Choose</option>${banks.map(a => `<option value="${esc(a.id)}" ${a.id === data.meta.salaryAccountId ? 'selected' : ''}>${esc(a.name)}</option>`).join('')}</select></label>` : ''}
+      <label class="grow"><span>Suggest savings for me</span>
+        <input type="checkbox" name="auto" role="switch" ${pct == null ? 'checked' : ''}></label>
+      <label class="grow" ${pct == null ? 'hidden' : ''} id="pct-field"><span>Save % of what's left</span>
+        <input name="pct" inputmode="numeric" autocomplete="off" aria-describedby="plan-error" value="${pct ?? 20}"></label>
+    </div>
     <p class="error" id="plan-error" role="alert"></p>
-    <p class="block-note">Changes apply from this pay cycle. Past cycles stay as they were.</p>
+    <p class="block-note form-note">Changes apply from this pay cycle. Past cycles stay as they were.</p>
   </form>
 
   ${setup ? `<section class="block"><h2>Commitments</h2>
@@ -359,11 +361,11 @@ const sheet = $('#sheet');
 
 let sheetOpener = null;
 
-function openSheet({ title, body, save, saveLabel = 'Save', focus }) {
+function openSheet({ title, body, save, saveLabel = 'Save', focus, cancel = true }) {
   if (!sheet.open) sheetOpener = document.activeElement;
   sheet.innerHTML = `<form novalidate>
     <div class="sheet-head">
-      <button type="button" data-close>Cancel</button>
+      ${cancel ? '<button type="button" data-close>Cancel</button>' : '<span></span>'}
       <h2 id="sheet-title">${esc(title)}</h2>
       <button class="save">${esc(saveLabel)}</button>
     </div>
@@ -463,8 +465,7 @@ function entrySheet(entry, preset = {}) {
       else data.tx.push({ id: uid(), ...fields });
       commit();
       if (ui.tab === 'today') rollFigure(before);
-      const left = isSetup() ? summary(data, localToday()).left : 0;
-      if (isSetup()) toast(`${left < 0 ? 'Over budget by' : 'Left to spend'} ${money(Math.abs(left))}`);
+      toast(entry ? 'Entry updated' : `Logged ${money(amount)}`);
     },
   });
 }
@@ -549,6 +550,7 @@ function savingsSheet() {
   openSheet({
     title: 'Suggested savings',
     saveLabel: 'Done',
+    cancel: false,
     body: `<p class="sheet-amount">${money(s.savings.amount)}</p>
       <p class="block-note">${esc(savingsNote(s.savings))}</p>
       <div class="sum-group"><table class="sum-table"><tbody>
@@ -589,10 +591,12 @@ function commitmentsSheet() {
   openSheet({
     title: 'Monthly commitments',
     body: `<p class="field-hint">Leave blank what you don't have. You can set pay dates later in Plan.</p>
-      ${list.map(c => `<label class="field"><span class="field-label">${esc(c.name)}</span>
-        <input name="c-${esc(c.id)}" inputmode="decimal" autocomplete="off" value="${inputAmount(c.amount)}" placeholder="RM"></label>`).join('')}
-      ${accounts.length ? `<label class="field"><span class="field-label">Paid from</span>
-        <select name="accountId">${accounts.map(a => `<option value="${esc(a.id)}" ${a.id === data.meta.salaryAccountId ? 'selected' : ''}>${esc(a.name)}</option>`).join('')}</select></label>` : ''}`,
+      <div class="rows form-rows">
+        ${list.map(c => `<label class="grow"><span>${esc(c.name)}</span>
+          <input name="c-${esc(c.id)}" inputmode="decimal" autocomplete="off" value="${inputAmount(c.amount)}" placeholder="RM 0"></label>`).join('')}
+        ${accounts.length ? `<label class="grow"><span>Paid from</span>
+          <select name="accountId">${accounts.map(a => `<option value="${esc(a.id)}" ${a.id === data.meta.salaryAccountId ? 'selected' : ''}>${esc(a.name)}</option>`).join('')}</select></label>` : ''}
+      </div>`,
     save(f) {
       const changes = [];
       for (const c of list) {
@@ -619,6 +623,7 @@ function categoriesSheet() {
   openSheet({
     title: 'Categories',
     saveLabel: 'Done',
+    cancel: false,
     body: `<ul class="rows">${data.categories.filter(c => !c.archived).map(c => `<li><button type="button" class="row" data-act="category" data-id="${esc(c.id)}">
       <span class="row-main"><span class="row-title">${esc(c.name)}</span></span>
     </button></li>`).join('')}</ul>
