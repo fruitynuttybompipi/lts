@@ -61,7 +61,7 @@ const hasCommitments = () => data.commitments.some(c => c.amount > 0);
 // The figure means nothing until commitments are in, so setup stays on screen until then.
 const isReady = () => isSetup() && openAccounts().length > 0 && hasCommitments();
 const typing = () => document.activeElement?.closest('#view input, #view select');
-const TYPE_ORDER = { bank: 0, card: 1, ewallet: 2 };
+const TYPE_ORDER = { card: 0, ewallet: 1, bank: 2 };
 const openAccounts = () => data.accounts.filter(a => !a.archived)
   .sort((a, b) => TYPE_ORDER[a.type] - TYPE_ORDER[b.type] || a.name.localeCompare(b.name));
 // Most-used categories come first, so logging usually takes one tap.
@@ -109,38 +109,26 @@ function accountCard(a, bal) {
   const type = { bank: 'Bank', card: 'Credit card', ewallet: 'E-wallet' }[a.type];
   const shown = owed ? Math.max(0, -bal) : bal;
   return `<li><button class="acct" data-type="${a.type}" data-act="account" data-id="${esc(a.id)}">
-    <span><span class="acct-name">${esc(a.name)}</span><span class="acct-type">${type}</span></span>
+    <span class="acct-main"><span class="acct-name">${esc(a.name)}</span><span class="acct-type">${type}</span></span>
     <span class="acct-balance">${owed ? `${money(shown)} <span class="acct-unit">owed</span>` : money(shown)}</span>
   </button></li>`;
 }
 
-function band(today, kind = 'day', word = '') {
-  const d = asDate(today);
-  const red = kind === 'day' && d.getDay() === 0;
-  const malay = d.toLocaleDateString('ms-MY', { weekday: 'long' });
-  return `<div class="band" data-band="${red ? 'red' : kind}">
-    <span>${word || esc(d.toLocaleDateString('en-MY', { month: 'long', year: 'numeric' }))}</span>
-    <span>${esc(d.toLocaleDateString('en-MY', { weekday: 'long', day: 'numeric' }))} · <span lang="ms">${esc(malay)}</span></span>
-  </div>`;
+const figureText = left => `RM ${(left < 0 ? Math.ceil(-left / 100) : Math.floor(left / 100)).toLocaleString('en-MY')}`;
+
+function hero(s, today) {
+  const over = s.left < 0;
+  const text = figureText(s.left);
+  const payday = today === s.cycle.start;
+  const dayWord = s.days === 1 ? 'day' : 'days';
+  return `<section class="hero" id="hero" data-state="${over ? 'over' : 'ok'}">
+    <p class="figure" id="figure" style="--len:${text.length}">${text}</p>
+    <p class="hero-sub">${over ? '<b>over budget</b>' : `left to spend · <b>${money(s.perDay)}</b> a day`}</p>
+    <p class="hero-sub">${payday ? 'Payday today' : `${s.days} ${dayWord} to payday`}</p>
+  </section>`;
 }
 
-function leaf(s, today) {
-  const over = s.left < 0;
-  const digits = (over ? Math.ceil(-s.left / 100) : Math.floor(s.left / 100)).toLocaleString('en-MY');
-  const dayWord = s.days === 1 ? 'day' : 'days';
-  const payday = today === s.cycle.start;
-  return `<article class="leaf" id="leaf" data-state="${over ? 'over' : 'ok'}">
-    ${band(today, over ? 'red' : payday ? 'pay' : 'day', payday ? 'Payday' : '')}
-    <div class="leaf-body">
-      <p class="figure" style="--len:${digits.length}"><small>RM</small>${digits}</p>
-      <p class="leaf-label">${over ? 'over budget' : 'left to spend'}</p>
-      <p class="leaf-foot">
-        <span>${over ? 'Nothing left this cycle' : `<b>${money(s.perDay)}</b> a day`}</span>
-        <span>${s.days} ${dayWord} to payday</span>
-      </p>
-    </div>
-  </article>`;
-}
+const savingsShort = sv => (sv.lowered ? 'Lowered after last cycle' : sv.basis === 'average' ? 'Based on your spending' : `${sv.pct}% of what's left`);
 
 function savingsNote(sv) {
   const parts = [];
@@ -159,54 +147,35 @@ function viewToday() {
   const warning = /rejected|not found|damaged/i.test(syncText) ? `<span class="sync-warning">${esc(syncText)}</span>` : '';
   if (!isReady()) {
     const count = openAccounts().length;
-    const step = (n, done, act, title, sub, off) => `<li><button class="row step" data-act="${act}" ${off ? 'disabled' : ''}>
-      <span class="step-mark" data-done="${done}">${done ? '<svg class="icon" aria-hidden="true"><use href="#i-check"/></svg><span class="visually-hidden">Done:</span>' : n}</span>
-      <span class="row-main"><span class="row-title">${title}</span><span class="row-sub">${esc(sub)}</span></span>
-      <svg class="icon" aria-hidden="true"><use href="#i-next"/></svg>
-    </button></li>`;
     const pay = isSetup() ? summary(data, today) : null;
-    return `<div class="topline quiet"><h1 class="visually-hidden">Today</h1>${warning}</div>
-    <div class="leaf-wrap"><article class="leaf">
-      ${band(today)}
-      <div class="leaf-body leaf-setup">
-        <h2>Set up your month</h2>
-        <ol class="rows steps">
-          ${step(1, isSetup(), 'salary', 'Salary and payday', pay ? `${money(pay.salary)}, payday on day ${data.meta.payday}` : 'What lands in your bank each month')}
-          ${step(2, count > 0, 'account', 'Your accounts', count ? `${count} added. Tap to add another.` : 'Your bank, cards and e-wallets')}
-          ${step(3, hasCommitments(), 'commitments', 'Monthly commitments', isSetup() ? 'Loans, rental, insurance and more' : 'Add your salary first', !isSetup())}
-        </ol>
-      </div>
-    </article></div>
-    <div class="pad" style="--days:${pay ? pay.days : 30}" aria-hidden="true"></div>`;
+    const step = (done, type, act, title, sub, off) => `<li><button class="acct step ${done ? '' : 'ghost'}" ${done ? `data-type="${type}"` : ''} data-act="${act}" ${off ? 'disabled' : ''}>
+      <span class="acct-main"><span class="acct-name">${title}</span><span class="acct-type">${esc(sub)}</span></span>
+      <svg class="icon" aria-hidden="true"><use href="#i-${done ? 'check' : 'next'}"/></svg>
+      ${done ? '<span class="visually-hidden">Done</span>' : ''}
+    </button></li>`;
+    return `<div class="topline"><h1>Set up your wallet</h1>${warning}</div>
+    <p class="hero-sub">Three steps, then your left to spend appears here.</p>
+    <ol class="stack">
+      ${step(isSetup(), 'save', 'salary', 'Salary and payday', pay ? `${money(pay.salary)}, payday on day ${data.meta.payday}` : 'What lands in your bank each month')}
+      ${step(count > 0, 'ewallet', 'account', 'Your accounts', count ? `${count} added. Tap to add another.` : 'Your bank, cards and e-wallets')}
+      ${step(hasCommitments(), 'card', 'commitments', 'Monthly commitments', isSetup() ? 'Loans, rental, insurance and more' : 'Add your salary first', !isSetup())}
+    </ol>`;
   }
 
   const s = summary(data, today);
   const { balances: bal } = balances(data, today);
   const leftover = s.leftover && s.left >= 0 && !data.dismissed[s.prior.start];
   const recent = entries().slice(0, 5);
-  return `<div class="topline quiet"><h1 class="visually-hidden">Today</h1>${warning}</div>
-  <div class="leaf-wrap">${leaf(s, today)}</div>
-  <div class="pad" style="--days:${s.days}" aria-hidden="true"></div>
+  return `<div class="topline"><h1>Today</h1>${warning}</div>
+  ${hero(s, today)}
 
-  <section class="block">
-    <div class="savings"><strong>Suggested savings</strong><span class="savings-amount">${money(s.savings.amount)}</span></div>
-    <p class="block-note">${esc(savingsNote(s.savings))}</p>
-    <details>
-      <summary>How this is worked out</summary>
-      <table class="sum-table"><tbody>
-        <tr><th scope="row">Salary</th><td>${money(s.salary)}</td></tr>
-        <tr><th scope="row">Commitments</th><td>${money(-s.commitments)}</td></tr>
-        <tr><th scope="row">Suggested savings</th><td>${money(-s.savings.amount)}</td></tr>
-        ${s.income ? `<tr><th scope="row">Other money received</th><td>+${money(s.income)}</td></tr>` : ''}
-        <tr><th scope="row">Spent so far</th><td>${money(-s.spent)}</td></tr>
-        <tr class="total"><th scope="row">Left to spend</th><td>${money(s.left)}</td></tr>
-      </tbody></table>
-    </details>
-  </section>
-
-  ${openAccounts().length ? `<section class="block"><h2>Accounts</h2>
-    <ul class="stack">${openAccounts().map(a => accountCard(a, bal.get(a.id))).join('')}</ul>
-  </section>` : ''}
+  <ul class="stack">
+    <li><button class="acct" data-type="save" data-act="savings">
+      <span class="acct-main"><span class="acct-name">Suggested savings</span><span class="acct-type">${esc(savingsShort(s.savings))}</span></span>
+      <span class="acct-balance">${money(s.savings.amount)}</span>
+    </button></li>
+    ${openAccounts().map(a => accountCard(a, bal.get(a.id))).join('')}
+  </ul>
 
   ${leftover ? `<div class="notice">
     <p><b>${money(s.leftover)} left from last cycle.</b> Move it to savings?</p>
@@ -230,14 +199,8 @@ function selectedCycle() {
 function viewSpending() {
   if (!isReady()) {
     return `<div class="topline"><h1>Where it went</h1></div>
-    <div class="leaf-wrap"><article class="leaf">
-      ${band(localToday())}
-      <div class="leaf-body leaf-setup">
-        <h2>Nothing here yet</h2>
-        <p>Once you start logging, this shows where each ringgit went.</p>
-        <button class="btn primary" data-act="tab" data-tab="today">Finish setup</button>
-      </div>
-    </article></div>`;
+    <p class="hero-sub">Once you start logging, this shows where each ringgit went.</p>
+    <button class="btn primary wide" data-act="tab" data-tab="today">Finish setup</button>`;
   }
   const cycle = selectedCycle();
   const report = cycleReport(data, cycle);
@@ -249,25 +212,23 @@ function viewSpending() {
   for (const t of list) groups.set(t.date, [...(groups.get(t.date) ?? []), t]);
 
   return `<div class="topline"><h1>Where it went</h1></div>
-  <div class="leaf-wrap"><article class="leaf" data-state="${report.spent > report.budget ? 'over' : 'ok'}">
-    <div class="band cycle-nav" data-band="${report.spent > report.budget ? 'red' : 'day'}">
-      <button data-act="cycle" data-step="1" aria-label="Previous pay cycle" ${cycle.start <= first ? 'disabled' : ''}><svg class="icon"><use href="#i-back"/></svg></button>
-      <span>${shortDate(cycle.start)} to ${shortDate(addDays(cycle.end, -1))}</span>
-      <button data-act="cycle" data-step="-1" aria-label="Next pay cycle" ${ui.cycleBack ? '' : 'disabled'}><svg class="icon"><use href="#i-next"/></svg></button>
-    </div>
-    <div class="leaf-body">
-      <p class="figure" style="--len:${plain(report.spent).length}"><small>RM</small>${plain(report.spent)}</p>
-      <p class="leaf-label">spent</p>
-      <p class="leaf-foot"><span>of <b>${money(report.budget)}</b></span><span>Commitments ${money(report.commitments)}</span></p>
-    </div>
-  </article></div>
+  <div class="cycle-nav">
+    <button data-act="cycle" data-step="1" aria-label="Previous pay cycle" ${cycle.start <= first ? 'disabled' : ''}><svg class="icon"><use href="#i-back"/></svg></button>
+    <span>${shortDate(cycle.start)} to ${shortDate(addDays(cycle.end, -1))}</span>
+    <button data-act="cycle" data-step="-1" aria-label="Next pay cycle" ${ui.cycleBack ? '' : 'disabled'}><svg class="icon"><use href="#i-next"/></svg></button>
+  </div>
+  <section class="hero" data-state="${report.spent > report.budget ? 'over' : 'ok'}">
+    <p class="figure" style="--len:${money(report.spent).length}">${money(report.spent)}</p>
+    <p class="hero-sub">spent of <b>${money(report.budget)}</b> budget</p>
+    <p class="hero-sub">Commitments of ${money(report.commitments)} are separate</p>
+  </section>
 
   <section class="block"><h2>By category</h2>
-    ${report.categories.length ? report.categories.map(c => `
+    ${report.categories.length ? `<div class="cats">${report.categories.map(c => `
       <button class="cat" data-act="filter" data-id="${esc(c.id)}" aria-pressed="${ui.category === c.id}">
         <span class="cat-label"><span>${esc(categoryName(c.id))}</span><span>${money(c.amount)}</span></span>
         <span class="cat-track"><span class="cat-bar" style="width:${(c.amount / top * 100).toFixed(1)}%"></span></span>
-      </button>`).join('') : '<p class="empty">No spending logged in this cycle.</p>'}
+      </button>`).join('')}</div>` : '<p class="empty">No spending logged in this cycle.</p>'}
   </section>
 
   <section class="block"><h2>${ui.category ? esc(categoryName(ui.category)) : 'All entries'}</h2>
@@ -283,16 +244,16 @@ function viewAccounts() {
   return `<div class="topline"><h1>Accounts</h1></div>
   ${open.length ? `<ul class="stack">${open.map(a => accountCard(a, b.balances.get(a.id))).join('')}</ul>
   <button class="btn wide" data-act="account">Add account</button>` : `<ul class="stack">
-    <li><button class="acct ghost" data-act="account" data-kind="bank"><span class="acct-name">Add your bank</span></button></li>
-    <li><button class="acct ghost" data-act="account" data-kind="card"><span class="acct-name">Add a credit card</span></button></li>
-    <li><button class="acct ghost" data-act="account" data-kind="ewallet"><span class="acct-name">Add an e-wallet</span></button></li>
+    <li><button class="acct ghost" data-act="account" data-kind="bank"><span class="acct-name">Add your bank</span><svg class="icon" aria-hidden="true"><use href="#i-add"/></svg></button></li>
+    <li><button class="acct ghost" data-act="account" data-kind="card"><span class="acct-name">Add a credit card</span><svg class="icon" aria-hidden="true"><use href="#i-add"/></svg></button></li>
+    <li><button class="acct ghost" data-act="account" data-kind="ewallet"><span class="acct-name">Add an e-wallet</span><svg class="icon" aria-hidden="true"><use href="#i-add"/></svg></button></li>
   </ul>`}
   ${b.spokenFor ? `<section class="block"><h2>Already spoken for</h2>
-    <p class="savings-amount">${money(b.spokenFor)}</p>
-    <table class="sum-table"><tbody>
+    <p class="spoken">${money(b.spokenFor)}</p>
+    <div class="sum-group"><table class="sum-table"><tbody>
       ${b.owed ? `<tr><th scope="row">Card bills</th><td>${money(b.owed)}</td></tr>` : ''}
       ${b.unpaid ? `<tr><th scope="row">Commitments still due from bank</th><td>${money(b.unpaid)}</td></tr>` : ''}
-    </tbody></table>
+    </tbody></table></div>
   </section>` : ''}
   ${archived.length ? `<details><summary>Archived accounts</summary>
     <ul class="rows">${archived.map(a => `<li><button class="row" data-act="restore" data-id="${esc(a.id)}">
@@ -359,26 +320,22 @@ function render() {
   });
 }
 
-/* Peel: the old leaf lifts away to reveal the new figure beneath. */
+/* The figure counts to its new value after an entry. */
 
-function peel(oldLeaf) {
-  const wrap = $('#leaf')?.parentElement;
-  if (!wrap || !oldLeaf || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  const t = document.createElement('template');
-  t.innerHTML = oldLeaf;
-  const ghost = t.content.firstElementChild;
-  ghost.removeAttribute('id');
-  ghost.classList.add('peel');
-  ghost.setAttribute('aria-hidden', 'true');
-  // Tears at the perforation; the bound band stays put.
-  ghost.querySelector('.band').remove();
-  ghost.style.top = `${$('#leaf .leaf-body').offsetTop}px`;
-  wrap.append(ghost);
-  ghost.animate([
-    { transform: 'perspective(1000px) rotateX(0deg)', opacity: 1 },
-    { transform: 'perspective(1000px) rotateX(28deg)', opacity: 1, offset: .5 },
-    { transform: 'perspective(1000px) rotateX(60deg) translateY(-12px)', opacity: 0 },
-  ], { duration: 420, easing: 'cubic-bezier(.16, 1, .3, 1)' }).finished.finally(() => ghost.remove());
+function rollFigure(from) {
+  const el = $('#figure');
+  if (!el || from == null || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const to = summary(data, localToday()).left;
+  if (from === to || (from < 0) !== (to < 0)) return;
+  const start = performance.now();
+  const final = el.textContent;
+  const step = now => {
+    const t = Math.min(1, (now - start) / 420);
+    const eased = 1 - (1 - t) ** 3;
+    el.textContent = t < 1 ? figureText(from + (to - from) * eased) : final;
+    if (t < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
 }
 
 /* Toast */
@@ -501,12 +458,13 @@ function entrySheet(entry, preset = {}) {
         note: type === 'transfer' ? '' : f.get('note').trim(),
         updatedAt: Date.now(),
       };
-      const before = $('#leaf')?.outerHTML;
+      const before = isReady() ? summary(data, localToday()).left : null;
       if (entry) Object.assign(entry, fields);
       else data.tx.push({ id: uid(), ...fields });
       commit();
-      peel(before);
-      if (isSetup()) toast(`${summary(data, localToday()).left < 0 ? 'Over budget by' : 'Left to spend'} ${money(Math.abs(summary(data, localToday()).left))}`);
+      if (ui.tab === 'today') rollFigure(before);
+      const left = isSetup() ? summary(data, localToday()).left : 0;
+      if (isSetup()) toast(`${left < 0 ? 'Over budget by' : 'Left to spend'} ${money(Math.abs(left))}`);
     },
   });
 }
@@ -583,6 +541,25 @@ function commitmentSheet(c) {
       });
       commit();
     },
+  });
+}
+
+function savingsSheet() {
+  const s = summary(data, localToday());
+  openSheet({
+    title: 'Suggested savings',
+    saveLabel: 'Done',
+    body: `<p class="sheet-amount">${money(s.savings.amount)}</p>
+      <p class="block-note">${esc(savingsNote(s.savings))}</p>
+      <div class="sum-group"><table class="sum-table"><tbody>
+        <tr><th scope="row">Salary</th><td>${money(s.salary)}</td></tr>
+        <tr><th scope="row">Commitments</th><td>${money(-s.commitments)}</td></tr>
+        <tr><th scope="row">Suggested savings</th><td>${money(-s.savings.amount)}</td></tr>
+        ${s.income ? `<tr><th scope="row">Other money received</th><td>+${money(s.income)}</td></tr>` : ''}
+        <tr><th scope="row">Spent so far</th><td>${money(-s.spent)}</td></tr>
+        <tr class="total"><th scope="row">Left to spend</th><td>${money(s.left)}</td></tr>
+      </tbody></table></div>`,
+    save() {},
   });
 }
 
@@ -726,6 +703,7 @@ const ACTIONS = {
   edit(el) { entrySheet(data.tx.find(t => t.id === el.dataset.id)); },
   account(el) { accountSheet(data.accounts.find(a => a.id === el.dataset.id), el.dataset.kind); },
   salary() { salarySheet(); },
+  savings() { savingsSheet(); },
   commitments() { commitmentsSheet(); },
   commitment(el) { commitmentSheet(data.commitments.find(c => c.id === el.dataset.id)); },
   category(el) { categorySheet(data.categories.find(c => c.id === el.dataset.id)); },
