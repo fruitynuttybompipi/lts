@@ -375,10 +375,10 @@ function peel(oldLeaf) {
   ghost.style.top = `${$('#leaf .leaf-body').offsetTop}px`;
   wrap.append(ghost);
   ghost.animate([
-    { transform: 'perspective(1000px) rotateX(0deg)', opacity: 1, boxShadow: '0 3px 8px rgb(0 0 0 / .28)' },
-    { transform: 'perspective(1000px) rotateX(38deg) translateY(-6px)', opacity: 1, boxShadow: '0 26px 34px rgb(0 0 0 / .4)', offset: .55 },
-    { transform: 'perspective(1000px) rotateX(82deg) translateY(-30px)', opacity: 0, boxShadow: '0 40px 40px rgb(0 0 0 / 0)' },
-  ], { duration: 620, easing: 'cubic-bezier(.16, 1, .3, 1)' }).finished.finally(() => ghost.remove());
+    { transform: 'perspective(1000px) rotateX(0deg)', opacity: 1 },
+    { transform: 'perspective(1000px) rotateX(28deg)', opacity: 1, offset: .5 },
+    { transform: 'perspective(1000px) rotateX(60deg) translateY(-12px)', opacity: 0 },
+  ], { duration: 420, easing: 'cubic-bezier(.16, 1, .3, 1)' }).finished.finally(() => ghost.remove());
 }
 
 /* Toast */
