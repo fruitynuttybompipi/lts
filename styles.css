@@ -359,7 +359,7 @@ fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
 fieldset.field { margin-top: var(--s-4); }
 legend { padding: 0; }
 .seg-group { margin-top: var(--s-3); }
-dialog :focus-visible { outline-color: var(--ground); }
+dialog :focus-visible, .leaf :focus-visible { outline-color: var(--ground); }
 
 .sheet-head {
   position: sticky; top: 0; z-index: 1;
