@@ -5,18 +5,24 @@
   font-display: swap;
 }
 
+@property --glow { syntax: "<color>"; inherits: true; initial-value: #1c2a4a; }
+
 :root {
-  --ground: #000;
-  --surface: #1c1c1e;
-  --surface-up: #2c2c2e;
-  --line: #38383a;
+  --ground: #0b0d12;
+  --surface: #1a1d25;
+  --surface-up: #2a2e38;
+  --line: #333845;
   --stroke: #7c7c80;
   --text: #fff;
-  --text-soft: #a1a1a6;
+  --text-soft: #b4b6be;
+  --glow-calm: #1c2a4a;
+  --glow-ok: #0f5a3a;
+  --glow-fast: #6b5a00;
+  --glow-over: #6e2413;
   --card-save: #1f6feb;
   --card-credit: #c9481f;
   --card-wallet: #12805a;
-  --card-bank: #2c2c2e;
+  --card-bank: #2a2e38;
   --link: #5aa2ff;
   --gain: #30d158;
   --alert: #ff7a5c;
@@ -62,10 +68,24 @@ html { -webkit-text-size-adjust: 100%; scrollbar-color: var(--line) var(--ground
 
 body {
   margin: 0;
+  --glow: var(--glow-calm);
   background: var(--ground);
   color: var(--text);
   font: 400 var(--t-body)/1.4 var(--ui);
   caret-color: var(--link);
+}
+
+/* The screen shows pace before any number is read. */
+body[data-pace="ok"] { --glow: var(--glow-ok); }
+body[data-pace="fast"] { --glow: var(--glow-fast); }
+body[data-pace="over"] { --glow: var(--glow-over); }
+body { transition: --glow .8s ease; }
+body::before {
+  content: "";
+  position: fixed; inset: 0 0 auto; z-index: -1;
+  height: 62vh;
+  background: radial-gradient(120% 90% at 50% -14%, var(--glow), transparent 72%);
+  pointer-events: none;
 }
 
 ::selection { background: var(--text); color: var(--ground); }
@@ -492,6 +512,7 @@ form:not([data-type="card"]) .only-card { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  body { transition: none; }
   #toast, .grow input[type="checkbox"], .grow input[type="checkbox"]::after { transition: none; }
   dialog[open], .deal .stack li { animation: none; }
   .acct, .tabs .add { transition: none; }

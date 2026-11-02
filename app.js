@@ -52,7 +52,7 @@ let data = load();
 let cfg = {};
 try { cfg = JSON.parse(localStorage.getItem(SYNC_KEY)) || {}; } catch { /* no saved sync settings */ }
 
-const ui = { tab: 'today', cycleBack: 0, category: null, firstPaint: true };
+const ui = { tab: 'today', cycleBack: 0, category: null, firstPaint: true, seen: new Set() };
 let syncText = '';
 
 // Monogram tiles in approximate brand colours; glyph marks exist only for brands in the CC0 Simple Icons set.
@@ -65,10 +65,10 @@ const BRANDS = [
   ['alliance', 'Alliance Bank', 'bank', '#00416a', '#fff', 'AL'], ['ocbc', 'OCBC', 'bank', '#e4002b', '#fff', 'OCBC'],
   ['hsbc', 'HSBC', 'bank', '#fff', '#db0011', 'HSBC', 'hsbc'], ['uob', 'UOB', 'bank', '#0a3a7e', '#fff', 'UOB'],
   ['stanchart', 'Standard Chartered', 'bank', '#0473ea', '#fff', 'SC'], ['gxbank', 'GXBank', 'bank', '#5b2ee5', '#fff', 'GX'],
-  ['boostbank', 'Boost Bank', 'bank', '#e8232a', '#fff', 'BB'], ['aeon', 'AEON Bank', 'bank', '#b60081', '#fff', 'AE'],
+  ['boostbank', 'Boost Bank', 'bank', '#dc1f26', '#fff', 'BB'], ['aeon', 'AEON Bank', 'bank', '#b60081', '#fff', 'AE'],
   ['ryt', 'Ryt Bank', 'bank', '#111', '#fff', 'Ryt'], ['kaf', 'KAF Digital', 'bank', '#14532d', '#fff', 'KAF'],
   ['tng', "Touch 'n Go", 'ewallet', '#0a4ea2', '#fff', 'TNG'], ['grabpay', 'GrabPay', 'ewallet', '#00864b', '#fff', 'Grab', 'grab'],
-  ['shopeepay', 'ShopeePay', 'ewallet', '#ee4d2d', '#fff', 'SPay', 'shopee'], ['boost', 'Boost', 'ewallet', '#e8232a', '#fff', 'Bo'],
+  ['shopeepay', 'ShopeePay', 'ewallet', '#ee4d2d', '#fff', 'SPay', 'shopee'], ['boost', 'Boost', 'ewallet', '#dc1f26', '#fff', 'Bo'],
   ['mae', 'MAE', 'ewallet', '#ffc72c', '#000', 'MAE'], ['bigpay', 'BigPay', 'ewallet', '#2b2d8f', '#fff', 'BP'],
   ['setel', 'Setel', 'ewallet', '#007f7a', '#fff', 'St'],
 ].map(([id, name, kind, bg, fg, mono, glyph]) => ({ id, name, kind, bg, fg, mono, glyph }));
@@ -381,6 +381,7 @@ function render() {
   $('#view').classList.toggle('deal', ui.tab === 'today' && ready && (ui.firstPaint || justReady));
   ui.ready = ready;
   ui.firstPaint = false;
+  document.body.dataset.pace = ready ? summary(data, localToday()).pace.state : 'calm';
   if (justReady) toast('Your wallet is ready');
   document.querySelectorAll('.tabs [data-tab]').forEach(b => {
     if (b.dataset.tab === ui.tab) b.setAttribute('aria-current', 'page');
@@ -406,8 +407,10 @@ function count(el, from, to, format, ms = 800) {
 }
 
 // Opening a screen fills its figure and bars from zero; values are already correct if motion is off.
-function fillIn() {
-  if (calm()) return;
+function fillIn(again) {
+  // Each screen fills once per app open, so daily tab switching stays instant.
+  if (calm() || (!again && ui.seen.has(ui.tab))) return;
+  ui.seen.add(ui.tab);
   const today = $('#figure');
   if (today) {
     const left = summary(data, localToday()).left;
@@ -585,14 +588,15 @@ function accountSheet(account, kind) {
   const bal = account ? balances(data, localToday()).balances.get(account.id) : 0;
   const current = account ? (account.type === 'card' ? Math.max(0, -bal) : bal) : 0;
   const body = `
-    <label class="field"><span class="field-label">Name</span><input name="name" autocomplete="off" value="${esc(account?.name)}"></label>
     ${segments('type', 'Account type', [['bank', 'Bank', 'i-bank'], ['card', 'Credit card', 'i-card'], ['ewallet', 'E-wallet', 'i-accounts']], account?.type ?? kind ?? 'bank')}
     <fieldset class="field not-ewallet"><legend class="field-label">Choose your bank</legend>${brandGrid('bank', account?.brand)}</fieldset>
     <fieldset class="field only-ewallet"><legend class="field-label">Choose your e-wallet</legend>${brandGrid('ewallet', account?.brand)}</fieldset>
-    <label class="field"><span class="field-label not-card">${account ? 'Correct balance' : 'Balance today'}</span>
-      <span class="field-label only-card">${account ? 'Correct amount owed' : 'Amount owed today'}</span>
-      <input name="balance" inputmode="decimal" autocomplete="off" value="${current > 0 ? inputAmount(current) : ''}" placeholder="0">
-      ${account ? '<span class="field-hint">Change this if it no longer matches your app or statement. It does not count as spending.</span>' : ''}</label>
+    <div class="rows form-rows">
+      <label class="grow">${plainTile('i-note')}<span>Name</span><input name="name" autocomplete="off" value="${esc(account?.name)}"></label>
+      <label class="grow">${plainTile('i-cash')}<span class="not-card">${account ? 'Correct balance' : 'Balance today'}</span><span class="only-card">${account ? 'Correct amount owed' : 'Amount owed today'}</span>
+        <input name="balance" inputmode="decimal" autocomplete="off" value="${current > 0 ? inputAmount(current) : ''}" placeholder="RM 0"></label>
+    </div>
+    ${account ? '<p class="field-hint">Change this if it no longer matches your app or statement. It does not count as spending.</p>' : ''}
     ${account ? `<button type="button" class="btn danger" data-act="archive" data-id="${esc(account.id)}">${svg('i-trash')}Remove account</button>` : ''}`;
 
   openSheet({
@@ -786,7 +790,7 @@ function categorySheet(c) {
   openSheet({
     title: c ? 'Edit category' : 'Add category',
     focus: 'name',
-    body: `<label class="field"><span class="field-label">Name</span><input name="name" autocomplete="off" value="${esc(c?.name)}"></label>
+    body: `<div class="rows form-rows"><label class="grow">${plainTile('i-tag')}<span>Name</span><input name="name" autocomplete="off" value="${esc(c?.name)}"></label></div>
       ${c ? `<button type="button" class="btn danger" data-act="archive-category" data-id="${esc(c.id)}">${svg('i-trash')}Remove category</button>` : ''}`,
     save(f) {
       const name = f.get('name').trim();
@@ -842,7 +846,7 @@ const ACTIONS = {
   category(el) { categorySheet(data.categories.find(c => c.id === el.dataset.id)); },
   categories() { categoriesSheet(); },
   'sync-settings'() { syncSheet(); },
-  cycle(el) { ui.cycleBack += Number(el.dataset.step); ui.category = null; render(); fillIn(); },
+  cycle(el) { ui.cycleBack += Number(el.dataset.step); ui.category = null; render(); fillIn(true); },
   filter(el) { ui.category = ui.category === el.dataset.id ? null : el.dataset.id; render(); },
   'move-leftover'(el) { entrySheet(null, { type: 'transfer', amount: Number(el.dataset.amount), leftover: true }); },
   'dismiss-leftover'(el) { data.dismissed[el.dataset.id] = true; commit(); },
