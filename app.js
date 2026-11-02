@@ -57,6 +57,10 @@ const ui = { tab: 'today', cycleBack: 0, category: null };
 let syncText = '';
 
 const isSetup = () => data.plans.length > 0;
+const hasCommitments = () => data.commitments.some(c => c.amount > 0);
+// The figure means nothing until commitments are in, so setup stays on screen until then.
+const isReady = () => isSetup() && openAccounts().length > 0 && hasCommitments();
+const typing = () => document.activeElement?.closest('#view input, #view select');
 const TYPE_ORDER = { bank: 0, card: 1, ewallet: 2 };
 const openAccounts = () => data.accounts.filter(a => !a.archived)
   .sort((a, b) => TYPE_ORDER[a.type] - TYPE_ORDER[b.type] || a.name.localeCompare(b.name));
@@ -116,7 +120,7 @@ function band(today, kind = 'day', word = '') {
   const malay = d.toLocaleDateString('ms-MY', { weekday: 'long' });
   return `<div class="band" data-band="${red ? 'red' : kind}">
     <span>${word || esc(d.toLocaleDateString('en-MY', { month: 'long', year: 'numeric' }))}</span>
-    <span>${esc(d.toLocaleDateString('en-MY', { weekday: 'long', day: 'numeric' }))} · ${esc(malay)}</span>
+    <span>${esc(d.toLocaleDateString('en-MY', { weekday: 'long', day: 'numeric' }))} · <span lang="ms">${esc(malay)}</span></span>
   </div>`;
 }
 
@@ -128,7 +132,7 @@ function leaf(s, today) {
   return `<article class="leaf" id="leaf" data-state="${over ? 'over' : 'ok'}">
     ${band(today, over ? 'red' : payday ? 'pay' : 'day', payday ? 'Payday' : '')}
     <div class="leaf-body">
-      <p class="figure ${digits.length > 6 ? 'long' : ''}"><small>RM</small>${digits}</p>
+      <p class="figure" style="--len:${digits.length}"><small>RM</small>${digits}</p>
       <p class="leaf-label">${over ? 'over budget' : 'left to spend'}</p>
       <p class="leaf-foot">
         <span>${over ? 'Nothing left this cycle' : `<b>${money(s.perDay)}</b> a day`}</span>
@@ -153,16 +157,27 @@ function savingsNote(sv) {
 function viewToday() {
   const today = localToday();
   const warning = /rejected|not found|damaged/i.test(syncText) ? `<span class="sync-warning">${esc(syncText)}</span>` : '';
-  if (!isSetup()) {
+  if (!isReady()) {
+    const count = openAccounts().length;
+    const step = (n, done, act, title, sub, off) => `<li><button class="row step" data-act="${act}" ${off ? 'disabled' : ''}>
+      <span class="step-mark" data-done="${done}">${done ? '<svg class="icon" aria-hidden="true"><use href="#i-check"/></svg><span class="visually-hidden">Done:</span>' : n}</span>
+      <span class="row-main"><span class="row-title">${title}</span><span class="row-sub">${esc(sub)}</span></span>
+      <svg class="icon" aria-hidden="true"><use href="#i-next"/></svg>
+    </button></li>`;
+    const pay = isSetup() ? summary(data, today) : null;
     return `<div class="topline quiet"><h1 class="visually-hidden">Today</h1>${warning}</div>
     <div class="leaf-wrap"><article class="leaf">
       ${band(today)}
       <div class="leaf-body leaf-setup">
         <h2>Set up your month</h2>
-        <p>Add your salary and payday, then your commitments and accounts.</p>
-        <button class="btn primary" data-act="tab" data-tab="plan">Start setup</button>
+        <ol class="rows steps">
+          ${step(1, isSetup(), 'salary', 'Salary and payday', pay ? `${money(pay.salary)}, payday on day ${data.meta.payday}` : 'What lands in your bank each month')}
+          ${step(2, count > 0, 'account', 'Your accounts', count ? `${count} added. Tap to add another.` : 'Your bank, cards and e-wallets')}
+          ${step(3, hasCommitments(), 'commitments', 'Monthly commitments', isSetup() ? 'Loans, rental, insurance and more' : 'Add your salary first', !isSetup())}
+        </ol>
       </div>
-    </article></div>`;
+    </article></div>
+    <div class="pad" style="--days:${pay ? pay.days : 30}" aria-hidden="true"></div>`;
   }
 
   const s = summary(data, today);
@@ -190,7 +205,7 @@ function viewToday() {
   </section>
 
   ${openAccounts().length ? `<section class="block"><h2>Accounts</h2>
-    <ul class="stack peek">${openAccounts().map(a => accountCard(a, bal.get(a.id))).join('')}</ul>
+    <ul class="stack">${openAccounts().map(a => accountCard(a, bal.get(a.id))).join('')}</ul>
   </section>` : ''}
 
   ${leftover ? `<div class="notice">
@@ -213,7 +228,17 @@ function selectedCycle() {
 }
 
 function viewSpending() {
-  if (!isSetup()) return `<div class="topline"><h1>Spending</h1></div><p class="empty">Set up your plan to see where your money goes.</p>`;
+  if (!isReady()) {
+    return `<div class="topline"><h1>Where it went</h1></div>
+    <div class="leaf-wrap"><article class="leaf">
+      ${band(localToday())}
+      <div class="leaf-body leaf-setup">
+        <h2>Nothing here yet</h2>
+        <p>Once you start logging, this shows where each ringgit went.</p>
+        <button class="btn primary" data-act="tab" data-tab="today">Finish setup</button>
+      </div>
+    </article></div>`;
+  }
   const cycle = selectedCycle();
   const report = cycleReport(data, cycle);
   const first = cycleOf(data.meta.setupDate, data.meta.payday).start;
@@ -231,7 +256,7 @@ function viewSpending() {
       <button data-act="cycle" data-step="-1" aria-label="Next pay cycle" ${ui.cycleBack ? '' : 'disabled'}><svg class="icon"><use href="#i-next"/></svg></button>
     </div>
     <div class="leaf-body">
-      <p class="figure ${plain(report.spent).length > 5 ? 'long' : ''}"><small>RM</small>${plain(report.spent)}</p>
+      <p class="figure" style="--len:${plain(report.spent).length}"><small>RM</small>${plain(report.spent)}</p>
       <p class="leaf-label">spent</p>
       <p class="leaf-foot"><span>of <b>${money(report.budget)}</b></span><span>Commitments ${money(report.commitments)}</span></p>
     </div>
@@ -256,13 +281,17 @@ function viewAccounts() {
   const open = openAccounts();
   const archived = data.accounts.filter(a => a.archived);
   return `<div class="topline"><h1>Accounts</h1></div>
-  ${open.length ? `<ul class="stack">${open.map(a => accountCard(a, b.balances.get(a.id))).join('')}</ul>` : '<p class="empty">Add your bank, credit cards and e-wallets.</p>'}
-  <button class="btn wide" data-act="account">Add account</button>
+  ${open.length ? `<ul class="stack">${open.map(a => accountCard(a, b.balances.get(a.id))).join('')}</ul>
+  <button class="btn wide" data-act="account">Add account</button>` : `<ul class="stack">
+    <li><button class="acct ghost" data-act="account" data-kind="bank"><span class="acct-name">Add your bank</span></button></li>
+    <li><button class="acct ghost" data-act="account" data-kind="card"><span class="acct-name">Add a credit card</span></button></li>
+    <li><button class="acct ghost" data-act="account" data-kind="ewallet"><span class="acct-name">Add an e-wallet</span></button></li>
+  </ul>`}
   ${b.spokenFor ? `<section class="block"><h2>Already spoken for</h2>
     <p class="savings-amount">${money(b.spokenFor)}</p>
     <table class="sum-table"><tbody>
-      <tr><th scope="row">Card bills</th><td>${money(b.owed)}</td></tr>
-      <tr><th scope="row">Commitments still due from bank</th><td>${money(b.unpaid)}</td></tr>
+      ${b.owed ? `<tr><th scope="row">Card bills</th><td>${money(b.owed)}</td></tr>` : ''}
+      ${b.unpaid ? `<tr><th scope="row">Commitments still due from bank</th><td>${money(b.unpaid)}</td></tr>` : ''}
     </tbody></table>
   </section>` : ''}
   ${archived.length ? `<details><summary>Archived accounts</summary>
@@ -283,15 +312,15 @@ function viewPlan() {
   return `<div class="topline"><h1>Plan</h1></div>
   <form id="plan-form" novalidate>
     <label class="field"><span class="field-label">Take-home salary</span>
-      <input name="salary" inputmode="decimal" autocomplete="off" value="${setup ? inputAmount(plan.salary) : ''}" placeholder="RM"></label>
+      <input name="salary" inputmode="decimal" autocomplete="off" aria-describedby="plan-error" value="${setup ? inputAmount(plan.salary) : ''}" placeholder="RM"></label>
     <label class="field"><span class="field-label">Payday, day of the month</span>
-      <input name="payday" inputmode="numeric" autocomplete="off" value="${data.meta.payday ?? ''}" placeholder="1 to 31"></label>
+      <input name="payday" inputmode="numeric" autocomplete="off" aria-describedby="plan-error" value="${data.meta.payday ?? ''}" placeholder="1 to 31"></label>
     ${banks.length ? `<label class="field"><span class="field-label">Salary goes into</span>
       <select name="salaryAccount"><option value="">Choose account</option>${banks.map(a => `<option value="${esc(a.id)}" ${a.id === data.meta.salaryAccountId ? 'selected' : ''}>${esc(a.name)}</option>`).join('')}</select></label>` : ''}
     <label class="switch-row"><span>Suggest savings for me</span>
       <input type="checkbox" name="auto" role="switch" ${pct == null ? 'checked' : ''}></label>
     <label class="field" ${pct == null ? 'hidden' : ''} id="pct-field"><span class="field-label">Save this percentage of what's left after commitments</span>
-      <input name="pct" inputmode="numeric" autocomplete="off" value="${pct ?? 20}"></label>
+      <input name="pct" inputmode="numeric" autocomplete="off" aria-describedby="plan-error" value="${pct ?? 20}"></label>
     <p class="error" id="plan-error" role="alert"></p>
     <p class="block-note">Changes apply from this pay cycle. Past cycles stay as they were.</p>
   </form>
@@ -355,27 +384,33 @@ function peel(oldLeaf) {
 /* Toast */
 
 let toastTimer;
+const hideToast = () => $('#toast').classList.remove('show');
+
+// An undo stays until the next action, so there is no time limit on recovering an entry.
 function toast(text, undo) {
   const el = $('#toast');
   el.innerHTML = `<span>${esc(text)}</span>${undo ? '<button>Undo</button>' : ''}`;
   if (undo) el.querySelector('button').onclick = () => { el.classList.remove('show'); undo(); };
   el.classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove('show'), undo ? 5000 : 2500);
+  if (!undo) toastTimer = setTimeout(hideToast, 2500);
 }
 
 /* Sheets */
 
 const sheet = $('#sheet');
 
+let sheetOpener = null;
+
 function openSheet({ title, body, save, saveLabel = 'Save', focus }) {
+  if (!sheet.open) sheetOpener = document.activeElement;
   sheet.innerHTML = `<form novalidate>
     <div class="sheet-head">
       <button type="button" data-close>Cancel</button>
       <h2 id="sheet-title">${esc(title)}</h2>
       <button class="save">${esc(saveLabel)}</button>
     </div>
-    <div class="sheet-body"><p class="error" role="alert"></p>${body}</div>
+    <div class="sheet-body"><p class="error" id="sheet-error" role="alert"></p>${body}</div>
   </form>`;
   const form = sheet.querySelector('form');
   const type = form.querySelector('[name="type"]:checked');
@@ -384,8 +419,15 @@ function openSheet({ title, body, save, saveLabel = 'Save', focus }) {
   form.addEventListener('submit', e => {
     e.preventDefault();
     const problem = save(new FormData(form));
+    form.querySelectorAll('[aria-invalid]').forEach(el => { el.removeAttribute('aria-invalid'); el.removeAttribute('aria-describedby'); });
     if (problem) {
-      form.querySelector('.error').textContent = problem;
+      const [name, text] = problem;
+      form.querySelector('.error').textContent = text;
+      const field = form.elements[name];
+      const target = field instanceof RadioNodeList ? field[0] : field;
+      target.setAttribute('aria-invalid', 'true');
+      target.setAttribute('aria-describedby', 'sheet-error');
+      target.focus();
       sheet.scrollTop = 0;
     } else {
       sheet.close();
@@ -395,13 +437,19 @@ function openSheet({ title, body, save, saveLabel = 'Save', focus }) {
   if (focus) form.elements[focus].focus();
 }
 
-const chips = (name, items, chosen) => `<div class="chips">${items.map(i => `<label>
-  <input type="radio" name="${name}" value="${esc(i.id)}" ${i.id === chosen ? 'checked' : ''}><span>${esc(i.name)}</span>
-</label>`).join('')}</div>`;
+const chips = (name, legend, items, chosen, extra = '') => `<fieldset class="field ${extra}">
+  <legend class="field-label">${legend}</legend>
+  <div class="chips">${items.map(i => `<label>
+    <input type="radio" name="${name}" value="${esc(i.id)}" ${i.id === chosen ? 'checked' : ''}><span>${esc(i.name)}</span>
+  </label>`).join('')}</div>
+</fieldset>`;
 
-const segments = (name, items, chosen) => `<div class="seg">${items.map(([value, label]) => `<label>
-  <input type="radio" name="${name}" value="${value}" ${value === chosen ? 'checked' : ''}><span>${label}</span>
-</label>`).join('')}</div>`;
+const segments = (name, legend, items, chosen) => `<fieldset class="seg-group">
+  <legend class="visually-hidden">${legend}</legend>
+  <div class="seg">${items.map(([value, label]) => `<label>
+    <input type="radio" name="${name}" value="${value}" ${value === chosen ? 'checked' : ''}><span>${label}</span>
+  </label>`).join('')}</div>
+</fieldset>`;
 
 function entrySheet(entry, preset = {}) {
   const accounts = openAccounts();
@@ -422,13 +470,12 @@ function entrySheet(entry, preset = {}) {
     if (a?.archived) pickable.push(a);
   }
   const body = `
-    ${segments('type', [['spend', 'Spent'], ['income', 'Received'], ['transfer', 'Moved']], t.type)}
+    ${segments('type', 'Entry type', [['spend', 'Spent'], ['income', 'Received'], ['transfer', 'Moved']], t.type)}
     <label class="field amount-field"><span class="field-label">Amount in RM</span>
       <input name="amount" inputmode="decimal" autocomplete="off" value="${inputAmount(t.amount)}" placeholder="0"></label>
-    <div class="field only-spend"><span class="field-label">Category</span>
-      ${chips('categoryId', [...categoriesByUse(), ...data.categories.filter(c => c.archived && c.id === t.categoryId)], t.categoryId)}</div>
-    <div class="field"><span class="field-label">Account</span>${chips('accountId', pickable, t.accountId)}</div>
-    <div class="field only-transfer"><span class="field-label">Moved to</span>${chips('toAccountId', pickable, t.toAccountId)}</div>
+    ${chips('categoryId', 'Category', [...categoriesByUse(), ...data.categories.filter(c => c.archived && c.id === t.categoryId)], t.categoryId, 'only-spend')}
+    ${chips('accountId', 'Account', pickable, t.accountId)}
+    ${chips('toAccountId', 'Moved to', pickable, t.toAccountId, 'only-transfer')}
     <label class="field"><span class="field-label">Date</span><input type="date" name="date" value="${t.date}"></label>
     <label class="field not-transfer"><span class="field-label">Note, optional</span><input name="note" autocomplete="off" value="${esc(t.note)}"></label>
     ${entry ? `<button type="button" class="btn danger" data-act="delete-entry" data-id="${esc(entry.id)}">Delete entry</button>` : ''}`;
@@ -441,12 +488,12 @@ function entrySheet(entry, preset = {}) {
       const type = f.get('type');
       const amount = parseSen(f.get('amount'));
       const date = f.get('date');
-      if (!(amount > 0)) return 'Enter an amount above zero, for example 12.50.';
-      if (type === 'spend' && !f.get('categoryId')) return 'Choose a category.';
-      if (!f.get('accountId')) return 'Choose an account.';
-      if (type === 'transfer' && !f.get('toAccountId')) return 'Choose where the money moved to.';
-      if (type === 'transfer' && f.get('toAccountId') === f.get('accountId')) return 'Choose two different accounts.';
-      if (!date) return 'Choose a date.';
+      if (!(amount > 0)) return ['amount', 'Enter an amount above zero, for example 12.50.'];
+      if (type === 'spend' && !f.get('categoryId')) return ['categoryId', 'Choose a category.'];
+      if (!f.get('accountId')) return ['accountId', 'Choose an account.'];
+      if (type === 'transfer' && !f.get('toAccountId')) return ['toAccountId', 'Choose where the money moved to.'];
+      if (type === 'transfer' && f.get('toAccountId') === f.get('accountId')) return ['toAccountId', 'Choose two different accounts.'];
+      if (!date) return ['date', 'Choose a date.'];
       const fields = {
         type, amount, date, accountId: f.get('accountId'),
         categoryId: type === 'spend' ? f.get('categoryId') : null,
@@ -464,12 +511,12 @@ function entrySheet(entry, preset = {}) {
   });
 }
 
-function accountSheet(account) {
+function accountSheet(account, kind) {
   const bal = account ? balances(data, localToday()).balances.get(account.id) : 0;
   const current = account ? (account.type === 'card' ? Math.max(0, -bal) : bal) : 0;
   const body = `
     <label class="field"><span class="field-label">Name</span><input name="name" autocomplete="off" value="${esc(account?.name)}"></label>
-    ${segments('type', [['bank', 'Bank'], ['card', 'Credit card'], ['ewallet', 'E-wallet']], account?.type ?? 'bank')}
+    ${segments('type', 'Account type', [['bank', 'Bank'], ['card', 'Credit card'], ['ewallet', 'E-wallet']], account?.type ?? kind ?? 'bank')}
     <label class="field"><span class="field-label not-card">${account ? 'Correct balance' : 'Balance today'}</span>
       <span class="field-label only-card">${account ? 'Correct amount owed' : 'Amount owed today'}</span>
       <input name="balance" inputmode="decimal" autocomplete="off" value="${current > 0 ? inputAmount(current) : ''}" placeholder="0">
@@ -485,8 +532,8 @@ function accountSheet(account) {
       const type = f.get('type');
       const text = f.get('balance').trim();
       const amount = text ? parseSen(text) : 0;
-      if (!name) return 'Enter a name.';
-      if (Number.isNaN(amount)) return 'Enter the balance as a number, for example 1200.50.';
+      if (!name) return ['name', 'Enter a name.'];
+      if (Number.isNaN(amount)) return ['balance', 'Enter the balance as a number, for example 1200.50.'];
       const signed = type === 'card' ? -amount : amount;
       const now = Date.now();
       if (account) {
@@ -524,9 +571,9 @@ function commitmentSheet(c) {
       const name = f.get('name').trim();
       const amount = parseSen(f.get('amount'));
       const day = Number(f.get('day'));
-      if (!name) return 'Enter a name.';
-      if (!(amount > 0)) return 'Enter a monthly amount above zero.';
-      if (!Number.isInteger(day) || day < 1 || day > 31) return 'Enter a day from 1 to 31.';
+      if (!name) return ['name', 'Enter a name.'];
+      if (!(amount > 0)) return ['amount', 'Enter a monthly amount above zero.'];
+      if (!Number.isInteger(day) || day < 1 || day > 31) return ['day', 'Enter a day from 1 to 31.'];
       const fields = { name, amount, day, accountId: f.get('accountId') || null };
       const today = localToday();
       const now = Date.now();
@@ -534,6 +581,58 @@ function commitmentSheet(c) {
       else data.commitments.push({
         id: uid(), ...fields, from: cycleOf(today, data.meta.payday).start, to: null, addedOn: today, updatedAt: now,
       });
+      commit();
+    },
+  });
+}
+
+function salarySheet() {
+  const today = localToday();
+  openSheet({
+    title: 'Salary and payday',
+    focus: 'salary',
+    body: `<label class="field"><span class="field-label">Take-home salary in RM</span>
+        <input name="salary" inputmode="decimal" autocomplete="off" value="${isSetup() ? inputAmount(summary(data, today).salary) : ''}" placeholder="0"></label>
+      <label class="field"><span class="field-label">Payday, day of the month</span>
+        <input name="payday" inputmode="numeric" autocomplete="off" value="${data.meta.payday ?? ''}" placeholder="1 to 31"></label>`,
+    save(f) {
+      const salary = parseSen(f.get('salary'));
+      const payday = Number(f.get('payday'));
+      if (!(salary > 0)) return ['salary', 'Enter your take-home salary, for example 6000.'];
+      if (!Number.isInteger(payday) || payday < 1 || payday > 31) return ['payday', 'Enter a payday from 1 to 31.'];
+      setPlan({ salary }, payday);
+      commit();
+    },
+  });
+}
+
+function commitmentsSheet() {
+  const list = data.commitments.filter(c => !c.to).sort((a, b) => a.name.localeCompare(b.name));
+  const accounts = openAccounts();
+  openSheet({
+    title: 'Monthly commitments',
+    body: `<p class="field-hint">Leave blank what you don't have. You can set pay dates later in Plan.</p>
+      ${list.map(c => `<label class="field"><span class="field-label">${esc(c.name)}</span>
+        <input name="c-${esc(c.id)}" inputmode="decimal" autocomplete="off" value="${inputAmount(c.amount)}" placeholder="RM"></label>`).join('')}
+      ${accounts.length ? `<label class="field"><span class="field-label">Paid from</span>
+        <select name="accountId">${accounts.map(a => `<option value="${esc(a.id)}" ${a.id === data.meta.salaryAccountId ? 'selected' : ''}>${esc(a.name)}</option>`).join('')}</select></label>` : ''}`,
+    save(f) {
+      const changes = [];
+      for (const c of list) {
+        const text = f.get(`c-${c.id}`).trim();
+        if (!text) continue;
+        const amount = parseSen(text);
+        if (!(amount > 0)) return [`c-${c.id}`, `Enter ${c.name} as a number, for example 1800.`];
+        changes.push([c, amount]);
+      }
+      if (!changes.length) return [`c-${list[0].id}`, 'Enter at least one monthly amount.'];
+      const now = Date.now();
+      const accountId = f.get('accountId');
+      for (const [c, amount] of changes) {
+        if (amount !== c.amount || accountId !== c.accountId) {
+          changeCommitment(data, c.id, { amount, accountId: accountId ?? c.accountId }, localToday(), now);
+        }
+      }
       commit();
     },
   });
@@ -564,8 +663,8 @@ function syncSheet() {
     save(f) {
       const repo = f.get('repo').trim();
       const token = f.get('token').trim();
-      if (!/^[\w.-]+\/[\w.-]+$/.test(repo)) return 'Enter the repo as owner/name.';
-      if (!token) return 'Add your access token.';
+      if (!/^[\w.-]+\/[\w.-]+$/.test(repo)) return ['repo', 'Enter the repo as owner/name.'];
+      if (!token) return ['token', 'Add your access token.'];
       cfg = { repo, token };
       localStorage.setItem(SYNC_KEY, JSON.stringify(cfg));
       sync();
@@ -581,7 +680,7 @@ function categorySheet(c) {
       ${c ? `<button type="button" class="btn danger" data-act="archive-category" data-id="${esc(c.id)}">Remove category</button>` : ''}`,
     save(f) {
       const name = f.get('name').trim();
-      if (!name) return 'Enter a name.';
+      if (!name) return ['name', 'Enter a name.'];
       if (c) Object.assign(c, { name, updatedAt: Date.now() });
       else data.categories.push({ id: uid(), name, updatedAt: Date.now() });
       commit();
@@ -591,6 +690,13 @@ function categorySheet(c) {
 
 /* Plan form saves as each field changes */
 
+function setPlan(patch, payday, salaryAccountId = data.meta.salaryAccountId) {
+  const now = Date.now();
+  const today = localToday();
+  data.meta = { ...data.meta, payday, setupDate: data.meta.setupDate ?? today, salaryAccountId, updatedAt: now };
+  savePlan(data, patch, today, now);
+}
+
 function savePlanForm(form) {
   const f = new FormData(form);
   const salary = parseSen(f.get('salary'));
@@ -599,19 +705,15 @@ function savePlanForm(form) {
   const pct = Number(f.get('pct'));
   const error = $('#plan-error');
   $('#pct-field').hidden = auto;
+  form.querySelectorAll('[aria-invalid]').forEach(el => el.removeAttribute('aria-invalid'));
+  const fail = (name, text) => { error.textContent = text; form.elements[name].setAttribute('aria-invalid', 'true'); };
   if (!f.get('salary') && !f.get('payday')) return;
-  if (!(salary > 0)) { error.textContent = 'Enter your take-home salary, for example 6000.'; return; }
-  if (!Number.isInteger(payday) || payday < 1 || payday > 31) { error.textContent = 'Enter a payday from 1 to 31.'; return; }
-  if (!auto && !(pct >= 0 && pct <= 100)) { error.textContent = 'Enter a percentage from 0 to 100.'; return; }
+  if (!(salary > 0)) return fail('salary', 'Enter your take-home salary, for example 6000.');
+  if (!Number.isInteger(payday) || payday < 1 || payday > 31) return fail('payday', 'Enter a payday from 1 to 31.');
+  if (!auto && !(pct >= 0 && pct <= 100)) return fail('pct', 'Enter a percentage from 0 to 100.');
   error.textContent = '';
   const first = !isSetup();
-  const now = Date.now();
-  const today = localToday();
-  data.meta = {
-    ...data.meta, payday, setupDate: data.meta.setupDate ?? today,
-    salaryAccountId: f.get('salaryAccount') ?? data.meta.salaryAccountId, updatedAt: now,
-  };
-  savePlan(data, { salary, savePct: auto ? null : pct }, today, now);
+  setPlan({ salary, savePct: auto ? null : pct }, payday, f.get('salaryAccount') ?? data.meta.salaryAccountId);
   saved();
   if (first) render();
 }
@@ -622,7 +724,9 @@ const ACTIONS = {
   tab(el) { ui.tab = el.dataset.tab; ui.category = null; ui.cycleBack = 0; render(); scrollTo(0, 0); },
   add() { entrySheet(); },
   edit(el) { entrySheet(data.tx.find(t => t.id === el.dataset.id)); },
-  account(el) { accountSheet(data.accounts.find(a => a.id === el.dataset.id)); },
+  account(el) { accountSheet(data.accounts.find(a => a.id === el.dataset.id), el.dataset.kind); },
+  salary() { salarySheet(); },
+  commitments() { commitmentsSheet(); },
   commitment(el) { commitmentSheet(data.commitments.find(c => c.id === el.dataset.id)); },
   category(el) { categorySheet(data.categories.find(c => c.id === el.dataset.id)); },
   categories() { categoriesSheet(); },
@@ -674,10 +778,23 @@ const ACTIONS = {
 };
 
 document.addEventListener('click', e => {
+  if (!e.target.closest('#toast')) hideToast();
   if (e.target.closest('[data-close]')) { sheet.close(); return; }
   if (e.target === sheet) { sheet.close(); return; }
   const el = e.target.closest('[data-act]');
   if (el) ACTIONS[el.dataset.act](el);
+});
+
+// Focus would otherwise fall to the page when the button that opened a sheet was redrawn.
+sheet.addEventListener('close', () => {
+  if (!sheetOpener?.isConnected) $('.tabs [aria-current="page"]')?.focus();
+});
+
+// iOS keeps fixed elements behind the keyboard, so lift the sheet above it.
+window.visualViewport?.addEventListener('resize', () => {
+  const v = window.visualViewport;
+  sheet.style.bottom = `${Math.max(0, innerHeight - v.height - v.offsetTop)}px`;
+  sheet.style.maxHeight = `${v.height - 8}px`;
 });
 
 document.addEventListener('change', e => {
@@ -735,7 +852,7 @@ async function sync() {
       const { remote, sha } = await pull();
       data = merge(data, remote);
       persist();
-      if (!document.activeElement?.closest('#view input, #view select')) render();
+      if (!typing()) render();
       const body = JSON.stringify(data);
       if (sha && JSON.stringify(merge(remote, {})) === body) { done = true; break; }
       const res = await fetch(api(), {
@@ -765,7 +882,7 @@ function queueSync() {
 }
 
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible') { render(); sync(); }
+  if (document.visibilityState === 'visible') { if (!typing()) render(); sync(); }
 });
 
 render();
