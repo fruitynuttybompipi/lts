@@ -1,3 +1,10 @@
+@font-face {
+  font-family: Manrope;
+  src: url(fonts/manrope.woff2) format("woff2");
+  font-weight: 200 800;
+  font-display: swap;
+}
+
 :root {
   --ground: #000;
   --surface: #1c1c1e;
@@ -23,7 +30,7 @@
   --c-fun: #b565f0;
   --c-other: #c8693f;
   --scrim: rgb(0 0 0 / .6);
-  --ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+  --ui: Manrope, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
   --tabs: calc(64px + env(safe-area-inset-bottom));
   --s-1: 4px;
   --s-2: 8px;
@@ -49,7 +56,7 @@ html { -webkit-text-size-adjust: 100%; scrollbar-color: var(--line) var(--ground
 /* Lets the iPhone text size setting scale every rem. */
 @supports (font: -apple-system-body) { html { font: -apple-system-body; } }
 
-.figure, .acct-balance, .row-amount, .spoken, .sheet-amount, .sum-table td, .hero-sub b, .cat-label, .grow input, .amount-field input {
+.acct-balance, .row-amount, .sum-table td, .cat-label, .grow input {
   font-variant-numeric: tabular-nums;
 }
 
@@ -97,8 +104,8 @@ h1 { font-size: var(--t-title); line-height: 1.1; font-weight: 700; letter-spaci
 .hero { container-type: inline-size; margin-top: var(--s-2); }
 
 .figure {
-  /* Fits any amount: .58em per character of system bold, plus the RM mark. */
-  font-size: min(var(--t-figure), calc(100cqw / ((var(--len, 5) + 1.4) * .58)));
+  /* Fits any amount: .62em per character of Manrope bold, plus the RM mark. */
+  font-size: min(var(--t-figure), calc(100cqw / ((var(--len, 5) + 1.4) * .62)));
   font-weight: 700;
   line-height: 1.05;
   letter-spacing: -.03em;

@@ -1,5 +1,5 @@
-const CACHE = 'left-to-spend-v3';
-const FILES = ['./', 'index.html', 'styles.css', 'app.js', 'budget.mjs', 'manifest.webmanifest', 'icons/icon-180.png', 'icons/icon-192.png'];
+const CACHE = 'left-to-spend-v4';
+const FILES = ['./', 'index.html', 'styles.css', 'app.js', 'budget.mjs', 'manifest.webmanifest', 'fonts/manrope.woff2', 'icons/icon-180.png', 'icons/icon-192.png'];
 
 self.addEventListener('install', e => e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting())));
 
