@@ -190,9 +190,11 @@ h1 { font-size: var(--t-title); line-height: 1.1; font-weight: 700; letter-spaci
 .tile .icon.fill { fill: currentColor; stroke: none; }
 .rows .tile { background: var(--surface-up); }
 .acct.ghost .tile { background: var(--surface); }
-.mono { font-size: .75rem; font-weight: 800; line-height: 1; letter-spacing: -.01em; }
-.mono[data-len="4"] { font-size: .625rem; }
-.mono[data-len="1"], .mono[data-len="2"] { font-size: .875rem; }
+/* Fixed px: monograms are tile artwork and must stay inside the tile at any text size. */
+.acct .tile[style] { box-shadow: 0 0 0 1px rgb(255 255 255 / .4); }
+.mono { font-size: 12px; font-weight: 800; line-height: 1; letter-spacing: -.01em; }
+.mono[data-len="4"] { font-size: 10px; }
+.mono[data-len="1"], .mono[data-len="2"] { font-size: 14px; }
 
 .brands { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--s-2); }
 .brand { position: relative; display: grid; justify-items: center; align-content: start; gap: var(--s-1); padding: var(--s-2) 2px; border-radius: var(--r-control); text-align: center; font-size: .6875rem; line-height: 1.2; cursor: pointer; }
@@ -420,7 +422,7 @@ body:has(dialog[open]) { overflow: hidden; }
 
 .amount-field input {
   height: 1.5em;
-  font-size: var(--t-figure); font-weight: 700; letter-spacing: -.02em;
+  font-size: var(--t-figure); font-weight: 800; letter-spacing: -.03em;
   border: 0; border-bottom: 1px solid var(--stroke); border-radius: 0;
   background: none !important;
   padding: 0;
@@ -478,4 +480,5 @@ form:not([data-type="card"]) .only-card { display: none; }
   #toast, .grow input[type="checkbox"], .grow input[type="checkbox"]::after { transition: none; }
   dialog[open], .deal .stack li { animation: none; }
   .acct, .tabs .add { transition: none; }
+  .acct:active:not(:disabled), .tabs .add:active { transform: none; }
 }
