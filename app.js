@@ -87,6 +87,17 @@ const commit = () => { saved(); render(); };
 
 /* Views */
 
+const CATEGORY_ICONS = ['food', 'groceries', 'transport', 'shopping', 'bills', 'health', 'fun', 'other'];
+
+// Seeded categories keep one hue and icon; added ones stay neutral rather than generating a colour.
+function badge(categoryId, name) {
+  const key = String(categoryId).replace('cat-', '');
+  if (CATEGORY_ICONS.includes(key)) return `<span class="badge" data-cat="${key}"><svg class="icon" aria-hidden="true"><use href="#c-${key}"/></svg></span>`;
+  return `<span class="badge" aria-hidden="true">${esc((name || '?').slice(0, 1).toUpperCase())}</span>`;
+}
+
+const moveBadge = (icon, kind) => `<span class="badge" data-cat="${kind}"><svg class="icon" aria-hidden="true"><use href="#${icon}"/></svg></span>`;
+
 function entryRow(t) {
   const title = t.type === 'spend' ? (t.note || categoryName(t.categoryId))
     : t.type === 'income' ? (t.note || 'Received')
@@ -95,7 +106,10 @@ function entryRow(t) {
     : t.type === 'income' ? accountName(t.accountId)
     : 'Moved, not spending';
   const amount = t.type === 'income' ? `+${money(t.amount)}` : money(t.amount);
+  const mark = t.type === 'spend' ? badge(t.categoryId, categoryName(t.categoryId))
+    : t.type === 'income' ? moveBadge('i-add', 'in') : moveBadge('i-next', 'move');
   return `<li><button class="row" data-act="edit" data-id="${esc(t.id)}">
+    ${mark}
     <span class="row-main"><span class="row-title">${esc(title)}</span><span class="row-sub">${esc(where)}</span></span>
     <span class="row-amount ${t.type === 'income' ? 'in' : ''}">${amount}</span>
   </button></li>`;
@@ -114,17 +128,25 @@ function accountCard(a, bal) {
   </button></li>`;
 }
 
-const figureText = left => `RM ${(left < 0 ? Math.ceil(-left / 100) : Math.floor(left / 100)).toLocaleString('en-MY')}`;
+const figureText = left => (left < 0 ? Math.ceil(-left / 100) : Math.floor(left / 100)).toLocaleString('en-MY');
+const figure = (text, id = '') => `<p class="figure" style="--len:${text.length}"><span class="cur">RM</span> <span ${id ? `id="${id}"` : ''}>${text}</span></p>`;
+const PACE_WORDS = { ok: 'On track', fast: 'Spending fast', over: 'Over budget' };
 
 function hero(s, today) {
   const over = s.left < 0;
-  const text = figureText(s.left);
   const payday = today === s.cycle.start;
   const dayWord = s.days === 1 ? 'day' : 'days';
   return `<section class="hero" id="hero" data-state="${over ? 'over' : 'ok'}">
-    <p class="figure" id="figure" style="--len:${text.length}">${text}</p>
-    <p class="hero-sub">${over ? '<b>over budget</b>' : `left to spend · <b>${money(s.perDay)}</b> a day`}</p>
-    <p class="hero-sub">${payday ? 'Payday today' : `${s.days} ${dayWord} to payday`}</p>
+    ${figure(figureText(s.left), 'figure')}
+    <p class="hero-label">${over ? 'over budget' : 'left to spend'}</p>
+    <div class="pace" data-pace="${s.pace.state}" role="img" aria-label="${s.pace.spentPct.toFixed(0)}% of budget spent, ${s.pace.dayPct.toFixed(0)}% of the pay cycle gone. ${PACE_WORDS[s.pace.state]}.">
+      <span class="pace-fill" style="width:${s.pace.spentPct.toFixed(1)}%"></span>
+      <span class="pace-now" style="left:${s.pace.dayPct.toFixed(1)}%"></span>
+    </div>
+    <p class="pace-row">
+      <span class="pace-word" data-pace="${s.pace.state}">${PACE_WORDS[s.pace.state]}</span>
+      <span>${over ? '' : `<b>${money(s.perDay)}</b> a day · `}${payday ? 'payday today' : `${s.days} ${dayWord} to payday`}</span>
+    </p>
   </section>`;
 }
 
@@ -166,7 +188,7 @@ function viewToday() {
   const { balances: bal } = balances(data, today);
   const leftover = s.leftover && s.left >= 0 && !data.dismissed[s.prior.start];
   const recent = entries().slice(0, 5);
-  return `<div class="topline"><h1>Today</h1>${warning}</div>
+  return `<div class="topline quiet"><h1 class="visually-hidden">Today</h1><p class="date">${esc(asDate(today).toLocaleDateString('en-MY', { weekday: 'long', day: 'numeric', month: 'long' }))}</p>${warning}</div>
   ${hero(s, today)}
 
   <ul class="stack">
@@ -218,16 +240,20 @@ function viewSpending() {
     <button data-act="cycle" data-step="-1" aria-label="Next pay cycle" ${ui.cycleBack ? '' : 'disabled'}><svg class="icon"><use href="#i-next"/></svg></button>
   </div>
   <section class="hero" data-state="${report.spent > report.budget ? 'over' : 'ok'}">
-    <p class="figure" style="--len:${money(report.spent).length}">${money(report.spent)}</p>
-    <p class="hero-sub">spent of <b>${money(report.budget)}</b> budget</p>
-    <p class="hero-sub">Commitments of ${money(report.commitments)} are separate</p>
+    ${figure(plain(report.spent))}
+    <p class="hero-label">spent of ${money(report.budget)} budget</p>
+    ${report.categories.length ? `<div class="mix" aria-hidden="true">${report.categories.map(c => `<span data-cat="${esc(String(c.id).replace('cat-', ''))}" style="flex:${c.amount} 1 0"></span>`).join('')}</div>` : ''}
+    <p class="hero-sub">Commitments of ${money(report.commitments)} are counted separately</p>
   </section>
 
   <section class="block"><h2>By category</h2>
     ${report.categories.length ? `<div class="cats">${report.categories.map(c => `
       <button class="cat" data-act="filter" data-id="${esc(c.id)}" aria-pressed="${ui.category === c.id}">
-        <span class="cat-label"><span>${esc(categoryName(c.id))}</span><span>${money(c.amount)}</span></span>
-        <span class="cat-track"><span class="cat-bar" style="width:${(c.amount / top * 100).toFixed(1)}%"></span></span>
+        ${badge(c.id, categoryName(c.id))}
+        <span class="cat-main">
+          <span class="cat-label"><span>${esc(categoryName(c.id))}</span><span>${money(c.amount)}</span></span>
+          <span class="cat-track"><span class="cat-bar" data-cat="${esc(String(c.id).replace('cat-', ''))}" style="width:${(c.amount / top * 100).toFixed(1)}%"></span></span>
+        </span>
       </button>`).join('')}</div>` : '<p class="empty">No spending logged in this cycle.</p>'}
   </section>
 

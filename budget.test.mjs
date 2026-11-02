@@ -111,6 +111,13 @@ test('cycle with nothing logged reports no leftover', () => {
   assert.equal(b.summary(base(), '2026-11-26').leftover, 0);
 });
 
+test('pace compares spending with time gone', () => {
+  const at = (rm, day) => b.summary(base({ tx: [spend('2026-10-26', rm)] }), day).pace.state;
+  assert.equal(at(200, '2026-11-09'), 'ok');
+  assert.equal(at(1200, '2026-11-09'), 'fast');
+  assert.equal(at(2500, '2026-11-09'), 'over');
+});
+
 test('own percentage overrides the suggestion', () => {
   const data = base();
   data.plans[0].savePct = 10;

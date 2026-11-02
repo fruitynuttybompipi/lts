@@ -106,6 +106,14 @@ export function suggestedSavings(data, cycle) {
 const spendingBudget = (data, cycle) =>
   afterCommitments(data, cycle) - suggestedSavings(data, cycle).amount + incomeIn(data, cycle);
 
+// Compares share of budget spent with share of the cycle gone.
+function pace(spent, budget, today, cycle) {
+  const spentPct = budget > 0 ? (spent / budget) * 100 : 100;
+  const dayPct = (daysBetween(cycle.start, today) / daysBetween(cycle.start, cycle.end)) * 100;
+  const state = spent > budget ? 'over' : spentPct > dayPct + 10 ? 'fast' : 'ok';
+  return { spentPct: Math.min(100, spentPct), dayPct, state };
+}
+
 export function summary(data, today) {
   const cycle = cycleOf(today, data.meta.payday);
   const plan = planFor(data, cycle);
@@ -122,6 +130,7 @@ export function summary(data, today) {
   return {
     cycle, salary: plan.salary, commitments, afterCommitments: plan.salary - commitments,
     savings, income, budget, spent, left, days, perDay: Math.floor(Math.max(0, left) / days),
+    pace: pace(spent, budget, today, cycle),
     leftover: hasPrior ? Math.max(0, spendingBudget(data, prior) - spentIn(data, prior)) : 0,
     prior: hasPrior ? prior : null,
   };
