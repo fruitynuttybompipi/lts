@@ -1,0 +1,13 @@
+{
+  "name": "Left to Spend",
+  "short_name": "Left to Spend",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#07372d",
+  "theme_color": "#07372d",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

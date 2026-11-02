@@ -1,0 +1,16 @@
+const CACHE = 'left-to-spend-v1';
+const FILES = ['./', 'index.html', 'styles.css', 'app.js', 'budget.mjs', 'manifest.webmanifest', 'fonts/anton.woff2', 'icons/icon-180.png', 'icons/icon-192.png'];
+
+self.addEventListener('install', e => e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES))));
+
+// Serve the cached app at once, refresh it for next time. GitHub API calls are left alone.
+self.addEventListener('fetch', e => {
+  const url = new URL(e.request.url);
+  if (e.request.method !== 'GET' || url.origin !== location.origin) return;
+  e.respondWith(caches.open(CACHE).then(async cache => {
+    const hit = await cache.match(e.request, { ignoreSearch: true });
+    const fresh = fetch(e.request).then(r => { if (r.ok) cache.put(e.request, r.clone()); return r; });
+    if (hit) { fresh.catch(() => {}); return hit; }
+    return fresh;
+  }));
+});

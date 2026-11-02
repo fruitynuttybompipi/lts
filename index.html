@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Left to Spend</title>
+<meta name="description" content="Personal finance tracker: how much more you can spend and how much to save.">
+<meta name="theme-color" content="#07372d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Left to Spend">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="preload" href="fonts/anton.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<svg width="0" height="0" class="sprite" aria-hidden="true">
+  <defs>
+    <symbol id="i-today" viewBox="0 0 24 24"><path d="M5 4h14v16H5zM5 9h14M9 2.5v3M15 2.5v3"/></symbol>
+    <symbol id="i-spending" viewBox="0 0 24 24"><path d="M4 6h16M4 12h10M4 18h6"/></symbol>
+    <symbol id="i-accounts" viewBox="0 0 24 24"><path d="M3.5 7.5h17v12h-17zM3.5 7.5 16 4v3.5M16 13.5h4.5"/></symbol>
+    <symbol id="i-plan" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><path d="M13 4.5h4v5h-4zM7 14.5h4v5H7z"/></symbol>
+    <symbol id="i-add" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-back" viewBox="0 0 24 24"><path d="m14.5 6-6 6 6 6"/></symbol>
+    <symbol id="i-next" viewBox="0 0 24 24"><path d="m9.5 6 6 6-6 6"/></symbol>
+  </defs>
+</svg>
+<main id="view"></main>
+<nav class="tabs" aria-label="Main">
+  <button data-act="tab" data-tab="today"><svg class="icon"><use href="#i-today"/></svg>Today</button>
+  <button data-act="tab" data-tab="spending"><svg class="icon"><use href="#i-spending"/></svg>Spending</button>
+  <button class="add" data-act="add" aria-label="Add entry"><svg class="icon"><use href="#i-add"/></svg></button>
+  <button data-act="tab" data-tab="accounts"><svg class="icon"><use href="#i-accounts"/></svg>Accounts</button>
+  <button data-act="tab" data-tab="plan"><svg class="icon"><use href="#i-plan"/></svg>Plan</button>
+</nav>
+<dialog id="sheet" aria-labelledby="sheet-title"></dialog>
+<div id="toast" role="status"></div>
+<script type="module" src="app.js"></script>
+</body>
+</html>
