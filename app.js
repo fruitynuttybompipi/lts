@@ -159,7 +159,7 @@ function accountCard(a, bal) {
 }
 
 const figureText = left => (left < 0 ? Math.ceil(-left / 100) : Math.floor(left / 100)).toLocaleString('en-MY');
-const figure = (text, id = '') => `<p class="figure" style="--len:${text.length}"><span class="cur">RM</span> <span ${id ? `id="${id}"` : ''}>${text}</span></p>`;
+const figure = (text, id, sen) => `<p class="figure" style="--len:${text.length}"><span class="cur">RM</span> <span id="${id}" ${sen != null ? `data-sen="${sen}"` : ''}>${text}</span></p>`;
 const PACE_WORDS = { ok: 'On track', fast: 'Spending fast', over: 'Over budget' };
 
 function hero(s, today) {
@@ -232,7 +232,7 @@ function viewToday() {
   </ul>
 
   ${leftover ? `<div class="notice">
-    <p><b>You finished last cycle ${money(s.leftover)} under budget.</b> Move it to savings?</p>
+    <p class="notice-head">${plainTile('i-target')}<span><b>You finished last cycle ${money(s.leftover)} under budget.</b> Move it to savings?</span></p>
     <div class="notice-actions">
       <button class="btn primary" data-act="move-leftover" data-amount="${s.leftover}">Move to savings</button>
       <button class="btn" data-act="dismiss-leftover" data-id="${esc(s.prior.start)}">Not now</button>
@@ -272,7 +272,7 @@ function viewSpending() {
     <button data-act="cycle" data-step="-1" aria-label="Next pay cycle" ${ui.cycleBack ? '' : 'disabled'}><svg class="icon"><use href="#i-next"/></svg></button>
   </div>
   <section class="hero" data-state="${report.spent > report.budget ? 'over' : 'ok'}">
-    ${figure(plain(report.spent))}
+    ${figure(plain(report.spent), 'spent', report.spent)}
     <p class="hero-label">spent of ${money(report.budget)} budget</p>
     ${report.categories.length ? `<div class="mix" aria-hidden="true">${report.categories.map(c => `<span data-cat="${esc(String(c.id).replace('cat-', ''))}" style="flex:${c.amount} 1 0"></span>`).join('')}</div>` : ''}
     <p class="hero-sub">Commitments of ${money(report.commitments)} are counted separately</p>
@@ -301,7 +301,7 @@ function viewAccounts() {
   const archived = data.accounts.filter(a => a.archived);
   return `<div class="topline"><h1>Accounts</h1></div>
   ${open.length ? `<ul class="stack">${open.map(a => accountCard(a, b.balances.get(a.id))).join('')}</ul>
-  <button class="btn wide" data-act="account">Add account</button>` : `<ul class="stack">
+  <button class="btn wide" data-act="account">${svg('i-add')}Add account</button>` : `<ul class="stack">
     <li><button class="acct ghost" data-act="account" data-kind="bank">${plainTile(KIND_ICONS.bank)}<span class="acct-main"><span class="acct-name">Add your bank</span></span><svg class="icon" aria-hidden="true"><use href="#i-add"/></svg></button></li>
     <li><button class="acct ghost" data-act="account" data-kind="card">${plainTile(KIND_ICONS.card)}<span class="acct-main"><span class="acct-name">Add a credit card</span></span><svg class="icon" aria-hidden="true"><use href="#i-add"/></svg></button></li>
     <li><button class="acct ghost" data-act="account" data-kind="ewallet">${plainTile(KIND_ICONS.ewallet)}<span class="acct-main"><span class="acct-name">Add an e-wallet</span></span><svg class="icon" aria-hidden="true"><use href="#i-add"/></svg></button></li>
@@ -309,8 +309,8 @@ function viewAccounts() {
   ${b.spokenFor ? `<section class="block"><h2>Already spoken for</h2>
     <p class="spoken">${money(b.spokenFor)}</p>
     <div class="sum-group"><table class="sum-table"><tbody>
-      ${b.owed ? `<tr><th scope="row">Card bills</th><td>${money(b.owed)}</td></tr>` : ''}
-      ${b.unpaid ? `<tr><th scope="row">Commitments still due from bank</th><td>${money(b.unpaid)}</td></tr>` : ''}
+      ${b.owed ? `<tr><th scope="row">${svg('i-card')}Card bills</th><td>${money(b.owed)}</td></tr>` : ''}
+      ${b.unpaid ? `<tr><th scope="row">${svg('i-repeat')}Commitments still due from bank</th><td>${money(b.unpaid)}</td></tr>` : ''}
     </tbody></table></div>
   </section>` : ''}
   ${archived.length ? `<details><summary>Archived accounts</summary>
@@ -331,15 +331,15 @@ function viewPlan() {
   return `<div class="topline"><h1>Plan</h1></div>
   <form id="plan-form" novalidate>
     <div class="rows form-rows">
-      <label class="grow"><span>Take-home salary</span>
+      <label class="grow">${plainTile('i-cash')}<span>Take-home salary</span>
         <input name="salary" inputmode="decimal" autocomplete="off" aria-describedby="plan-error" value="${setup ? inputAmount(plan.salary) : ''}" placeholder="RM 0"></label>
-      <label class="grow"><span>Payday, day of month</span>
+      <label class="grow">${plainTile('i-calendar')}<span>Payday, day of month</span>
         <input name="payday" inputmode="numeric" autocomplete="off" aria-describedby="plan-error" value="${data.meta.payday ?? ''}" placeholder="Day 1 to 31"></label>
-      ${banks.length ? `<label class="grow"><span>Salary goes into</span>
+      ${banks.length ? `<label class="grow">${plainTile('i-bank')}<span>Salary goes into</span>
         <select name="salaryAccount"><option value="">Choose</option>${banks.map(a => `<option value="${esc(a.id)}" ${a.id === data.meta.salaryAccountId ? 'selected' : ''}>${esc(a.name)}</option>`).join('')}</select></label>` : ''}
-      <label class="grow"><span>Suggest savings for me</span>
+      <label class="grow">${plainTile('i-target')}<span>Suggest savings for me</span>
         <input type="checkbox" name="auto" role="switch" ${pct == null ? 'checked' : ''}></label>
-      <label class="grow" ${pct == null ? 'hidden' : ''} id="pct-field"><span>Save % of what's left</span>
+      <label class="grow" ${pct == null ? 'hidden' : ''} id="pct-field">${plainTile('i-tag')}<span>Save % of what's left</span>
         <input name="pct" inputmode="numeric" autocomplete="off" aria-describedby="plan-error" value="${pct ?? 20}"></label>
     </div>
     <p class="error" id="plan-error" role="alert"></p>
@@ -353,7 +353,7 @@ function viewPlan() {
       <span class="row-sub">${c.amount ? `Day ${c.day}${c.accountId ? ` · ${esc(accountName(c.accountId))}` : ''}` : 'Not set'}</span></span>
       <span class="row-amount">${c.amount ? money(c.amount) : 'Add'}</span>
     </button></li>`).join('')}</ul>
-    <button class="btn wide" data-act="commitment">Add commitment</button>
+    <button class="btn wide" data-act="commitment">${svg('i-add')}Add commitment</button>
   </section>
 
   <section class="block"><ul class="rows">
@@ -391,27 +391,49 @@ function render() {
 
 /* The figure counts to its new value after an entry. */
 
-function rollFigure(from, fromPct, accountId) {
-  const el = $('#figure');
-  if (!el || from == null || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  const now = summary(data, localToday());
-  const fill = $('.pace-fill');
-  fill?.animate([{ width: `${fromPct}%` }, { width: `${now.pace.spentPct}%` }], { duration: 420, easing: 'cubic-bezier(.16, 1, .3, 1)' });
-  document.querySelector(`.acct[data-id="${CSS.escape(accountId)}"]`)?.animate(
-    [{ transform: 'none' }, { transform: 'translateY(-8px)', offset: .35 }, { transform: 'none' }],
-    { duration: 420, easing: 'cubic-bezier(.16, 1, .3, 1)' },
-  );
-  const to = now.left;
-  if (from === to || (from < 0) !== (to < 0)) return;
-  const start = performance.now();
+const calm = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+const EASE = 'cubic-bezier(.16, 1, .3, 1)';
+
+function count(el, from, to, format, ms = 800) {
   const final = el.textContent;
+  const start = performance.now();
   const step = time => {
-    const t = Math.min(1, (time - start) / 420);
-    const eased = 1 - (1 - t) ** 3;
-    el.textContent = t < 1 ? figureText(from + (to - from) * eased) : final;
+    if (!el.isConnected) return;
+    const t = Math.min(1, (time - start) / ms);
+    el.textContent = t < 1 ? format(from + (to - from) * (1 - (1 - t) ** 4)) : final;
     if (t < 1) requestAnimationFrame(step);
   };
   requestAnimationFrame(step);
+}
+
+// Opening a screen fills its figure and bars from zero; values are already correct if motion is off.
+function fillIn() {
+  if (calm()) return;
+  const today = $('#figure');
+  if (today) {
+    const left = summary(data, localToday()).left;
+    count(today, 0, left, figureText);
+    const fill = $('.pace-fill');
+    fill?.animate([{ transform: 'scaleX(0)' }, { transform: 'none' }], { duration: 800, easing: EASE });
+  }
+  const spent = $('#spent');
+  if (spent) count(spent, 0, Number(spent.dataset.sen), v => plain(Math.round(v)));
+  document.querySelectorAll('.mix, .cat-bar').forEach((el, i) => el.animate(
+    [{ transform: 'scaleX(0)' }, { transform: 'none' }],
+    { duration: 700, delay: i * 30, easing: EASE, fill: 'backwards' },
+  ));
+}
+
+function rollFigure(from, fromPct, accountId) {
+  const el = $('#figure');
+  if (!el || from == null || calm()) return;
+  const now = summary(data, localToday());
+  $('.pace-fill')?.animate([{ width: `${fromPct}%` }, { width: `${now.pace.spentPct}%` }], { duration: 800, easing: EASE });
+  document.querySelector(`.acct[data-id="${CSS.escape(accountId)}"]`)?.animate(
+    [{ transform: 'none' }, { transform: 'translateY(-8px)', offset: .35 }, { transform: 'none' }],
+    { duration: 480, easing: EASE },
+  );
+  if (from !== now.left && (from < 0) === (now.left < 0)) count(el, from, now.left, figureText);
 }
 
 /* Toast */
@@ -422,7 +444,7 @@ const hideToast = () => $('#toast').classList.remove('show');
 // An undo stays until the next action, so there is no time limit on recovering an entry.
 function toast(text, undo) {
   const el = $('#toast');
-  el.innerHTML = `<span>${esc(text)}</span>${undo ? '<button>Undo</button>' : ''}`;
+  el.innerHTML = `<span class="toast-text">${svg('i-check')}${esc(text)}</span>${undo ? '<button>Undo</button>' : ''}`;
   if (undo) el.querySelector('button').onclick = () => { el.classList.remove('show'); undo(); };
   el.classList.add('show');
   clearTimeout(toastTimer);
@@ -473,16 +495,18 @@ function openSheet({ title, body, save, saveLabel = 'Save', focus, cancel = true
 const chips = (name, legend, items, chosen, extra = '') => `<fieldset class="field ${extra}">
   <legend class="field-label">${legend}</legend>
   <div class="chips">${items.map(i => `<label>
-    <input type="radio" name="${name}" value="${esc(i.id)}" ${i.id === chosen ? 'checked' : ''}><span>${esc(i.name)}</span>
+    <input type="radio" name="${name}" value="${esc(i.id)}" ${i.id === chosen ? 'checked' : ''}><span>${i.mark ?? ''}${esc(i.name)}</span>
   </label>`).join('')}</div>
 </fieldset>`;
 
 const segments = (name, legend, items, chosen) => `<fieldset class="seg-group">
   <legend class="visually-hidden">${legend}</legend>
-  <div class="seg">${items.map(([value, label]) => `<label>
-    <input type="radio" name="${name}" value="${value}" ${value === chosen ? 'checked' : ''}><span>${label}</span>
+  <div class="seg">${items.map(([value, label, icon]) => `<label>
+    <input type="radio" name="${name}" value="${value}" ${value === chosen ? 'checked' : ''}><span>${svg(icon)}${label}</span>
   </label>`).join('')}</div>
 </fieldset>`;
+
+const withTile = a => ({ ...a, mark: accountTile(a) });
 
 function entrySheet(entry, preset = {}) {
   const accounts = openAccounts();
@@ -503,15 +527,17 @@ function entrySheet(entry, preset = {}) {
     if (a?.archived) pickable.push(a);
   }
   const body = `
-    ${segments('type', 'Entry type', [['spend', 'Spent'], ['income', 'Received'], ['transfer', 'Moved']], t.type)}
+    ${segments('type', 'Entry type', [['spend', 'Spent', 'c-shopping'], ['income', 'Received', 'i-cash'], ['transfer', 'Moved', 'i-swap']], t.type)}
     <label class="field amount-field"><span class="field-label">Amount in RM</span>
       <input name="amount" inputmode="decimal" autocomplete="off" value="${inputAmount(t.amount)}" placeholder="0"></label>
-    ${chips('categoryId', 'Category', [...categoriesByUse(), ...data.categories.filter(c => c.archived && c.id === t.categoryId)], t.categoryId, 'only-spend')}
-    ${chips('accountId', 'Account', pickable, t.accountId)}
-    ${chips('toAccountId', 'Moved to', pickable, t.toAccountId, 'only-transfer')}
-    <label class="field"><span class="field-label">Date</span><input type="date" name="date" value="${t.date}"></label>
-    <label class="field not-transfer"><span class="field-label">Note, optional</span><input name="note" autocomplete="off" value="${esc(t.note)}"></label>
-    ${entry ? `<button type="button" class="btn danger" data-act="delete-entry" data-id="${esc(entry.id)}">Delete entry</button>` : ''}`;
+    ${chips('categoryId', 'Category', [...categoriesByUse(), ...data.categories.filter(c => c.archived && c.id === t.categoryId)].map(c => ({ ...c, mark: badge(c.id, c.name) })), t.categoryId, 'only-spend')}
+    ${chips('accountId', 'Account', pickable.map(withTile), t.accountId)}
+    ${chips('toAccountId', 'Moved to', pickable.map(withTile), t.toAccountId, 'only-transfer')}
+    <div class="rows form-rows">
+      <label class="grow">${plainTile('i-calendar')}<span>Date</span><input type="date" name="date" value="${t.date}"></label>
+      <label class="grow not-transfer">${plainTile('i-note')}<span>Note</span><input name="note" autocomplete="off" placeholder="Optional" value="${esc(t.note)}"></label>
+    </div>
+    ${entry ? `<button type="button" class="btn danger" data-act="delete-entry" data-id="${esc(entry.id)}">${svg('i-trash')}Delete entry</button>` : ''}`;
 
   openSheet({
     title: entry ? 'Edit entry' : 'Add entry',
@@ -556,14 +582,14 @@ function accountSheet(account, kind) {
   const current = account ? (account.type === 'card' ? Math.max(0, -bal) : bal) : 0;
   const body = `
     <label class="field"><span class="field-label">Name</span><input name="name" autocomplete="off" value="${esc(account?.name)}"></label>
-    ${segments('type', 'Account type', [['bank', 'Bank'], ['card', 'Credit card'], ['ewallet', 'E-wallet']], account?.type ?? kind ?? 'bank')}
+    ${segments('type', 'Account type', [['bank', 'Bank', 'i-bank'], ['card', 'Credit card', 'i-card'], ['ewallet', 'E-wallet', 'i-accounts']], account?.type ?? kind ?? 'bank')}
     <fieldset class="field not-ewallet"><legend class="field-label">Choose your bank</legend>${brandGrid('bank', account?.brand)}</fieldset>
     <fieldset class="field only-ewallet"><legend class="field-label">Choose your e-wallet</legend>${brandGrid('ewallet', account?.brand)}</fieldset>
     <label class="field"><span class="field-label not-card">${account ? 'Correct balance' : 'Balance today'}</span>
       <span class="field-label only-card">${account ? 'Correct amount owed' : 'Amount owed today'}</span>
       <input name="balance" inputmode="decimal" autocomplete="off" value="${current > 0 ? inputAmount(current) : ''}" placeholder="0">
       ${account ? '<span class="field-hint">Change this if it no longer matches your app or statement. It does not count as spending.</span>' : ''}</label>
-    ${account ? `<button type="button" class="btn danger" data-act="archive" data-id="${esc(account.id)}">Remove account</button>` : ''}`;
+    ${account ? `<button type="button" class="btn danger" data-act="archive" data-id="${esc(account.id)}">${svg('i-trash')}Remove account</button>` : ''}`;
 
   openSheet({
     title: account ? 'Edit account' : 'Add account',
@@ -603,15 +629,17 @@ function accountSheet(account, kind) {
 
 function commitmentSheet(c) {
   const body = `
-    <label class="field"><span class="field-label">Name</span><input name="name" autocomplete="off" value="${esc(c?.name)}"></label>
-    <label class="field"><span class="field-label">Monthly amount in RM</span>
-      <input name="amount" inputmode="decimal" autocomplete="off" value="${inputAmount(c?.amount)}" placeholder="0"></label>
-    <label class="field"><span class="field-label">Paid on day of the month</span>
-      <input name="day" inputmode="numeric" autocomplete="off" value="${c?.day ?? 1}"></label>
-    <label class="field"><span class="field-label">Paid from</span>
-      <select name="accountId"><option value="">Choose account</option>${openAccounts().map(a => `<option value="${esc(a.id)}" ${a.id === c?.accountId ? 'selected' : ''}>${esc(a.name)}</option>`).join('')}</select>
-      <span class="field-hint">This already counts each month, so do not log it as a purchase.</span></label>
-    ${c ? `<button type="button" class="btn danger" data-act="end-commitment" data-id="${esc(c.id)}">Remove commitment</button>` : ''}`;
+    <div class="rows form-rows">
+      <label class="grow">${plainTile('i-note')}<span>Name</span><input name="name" autocomplete="off" value="${esc(c?.name)}"></label>
+      <label class="grow">${plainTile('i-cash')}<span>Monthly amount</span>
+        <input name="amount" inputmode="decimal" autocomplete="off" value="${inputAmount(c?.amount)}" placeholder="RM 0"></label>
+      <label class="grow">${plainTile('i-calendar')}<span>Paid on day</span>
+        <input name="day" inputmode="numeric" autocomplete="off" value="${c?.day ?? 1}"></label>
+      <label class="grow">${plainTile('i-bank')}<span>Paid from</span>
+        <select name="accountId"><option value="">Choose</option>${openAccounts().map(a => `<option value="${esc(a.id)}" ${a.id === c?.accountId ? 'selected' : ''}>${esc(a.name)}</option>`).join('')}</select></label>
+    </div>
+    <p class="field-hint">This already counts each month, so do not log it as a purchase.</p>
+    ${c ? `<button type="button" class="btn danger" data-act="end-commitment" data-id="${esc(c.id)}">${svg('i-trash')}Remove commitment</button>` : ''}`;
 
   openSheet({
     title: c ? 'Edit commitment' : 'Add commitment',
@@ -645,11 +673,11 @@ function savingsSheet() {
     body: `<p class="sheet-amount">${money(s.savings.amount)}</p>
       <p class="block-note">${esc(savingsNote(s.savings))}</p>
       <div class="sum-group"><table class="sum-table"><tbody>
-        <tr><th scope="row">Salary</th><td>${money(s.salary)}</td></tr>
-        <tr><th scope="row">Commitments</th><td>${money(-s.commitments)}</td></tr>
-        <tr><th scope="row">Suggested savings</th><td>${money(-s.savings.amount)}</td></tr>
-        ${s.income ? `<tr><th scope="row">Other money received</th><td>+${money(s.income)}</td></tr>` : ''}
-        <tr><th scope="row">Spent so far</th><td>${money(-s.spent)}</td></tr>
+        <tr><th scope="row">${svg('i-cash')}Salary</th><td>${money(s.salary)}</td></tr>
+        <tr><th scope="row">${svg('i-repeat')}Commitments</th><td>${money(-s.commitments)}</td></tr>
+        <tr><th scope="row">${svg('i-target')}Suggested savings</th><td>${money(-s.savings.amount)}</td></tr>
+        ${s.income ? `<tr><th scope="row">${svg('i-add')}Other money received</th><td>+${money(s.income)}</td></tr>` : ''}
+        <tr><th scope="row">${svg('c-shopping')}Spent so far</th><td>${money(-s.spent)}</td></tr>
         <tr class="total"><th scope="row">Left to spend</th><td>${money(s.left)}</td></tr>
       </tbody></table></div>`,
     save() {},
@@ -661,10 +689,12 @@ function salarySheet() {
   openSheet({
     title: 'Salary and payday',
     focus: 'salary',
-    body: `<label class="field"><span class="field-label">Take-home salary in RM</span>
-        <input name="salary" inputmode="decimal" autocomplete="off" value="${isSetup() ? inputAmount(summary(data, today).salary) : ''}" placeholder="0"></label>
-      <label class="field"><span class="field-label">Payday, day of the month</span>
-        <input name="payday" inputmode="numeric" autocomplete="off" value="${data.meta.payday ?? ''}" placeholder="1 to 31"></label>`,
+    body: `<div class="rows form-rows">
+        <label class="grow">${plainTile('i-cash')}<span>Take-home salary</span>
+          <input name="salary" inputmode="decimal" autocomplete="off" value="${isSetup() ? inputAmount(summary(data, today).salary) : ''}" placeholder="RM 0"></label>
+        <label class="grow">${plainTile('i-calendar')}<span>Payday, day of month</span>
+          <input name="payday" inputmode="numeric" autocomplete="off" value="${data.meta.payday ?? ''}" placeholder="1 to 31"></label>
+      </div>`,
     save(f) {
       const salary = parseSen(f.get('salary'));
       const payday = Number(f.get('payday'));
@@ -683,9 +713,9 @@ function commitmentsSheet() {
     title: 'Monthly commitments',
     body: `<p class="field-hint">Leave blank what you don't have. You can set pay dates later in Plan.</p>
       <div class="rows form-rows">
-        ${list.map(c => `<label class="grow"><span>${esc(c.name)}</span>
+        ${list.map(c => `<label class="grow">${plainTile(COMMITMENT_ICONS[slug(c.name)] ?? 'i-repeat')}<span>${esc(c.name)}</span>
           <input name="c-${esc(c.id)}" inputmode="decimal" autocomplete="off" value="${inputAmount(c.amount)}" placeholder="RM 0"></label>`).join('')}
-        ${accounts.length ? `<label class="grow"><span>Paid from</span>
+        ${accounts.length ? `<label class="grow">${plainTile('i-bank')}<span>Paid from</span>
           <select name="accountId">${accounts.map(a => `<option value="${esc(a.id)}" ${a.id === data.meta.salaryAccountId ? 'selected' : ''}>${esc(a.name)}</option>`).join('')}</select></label>` : ''}
       </div>`,
     save(f) {
@@ -719,7 +749,7 @@ function categoriesSheet() {
       ${badge(c.id, c.name)}
       <span class="row-main"><span class="row-title">${esc(c.name)}</span></span>
     </button></li>`).join('')}</ul>
-    <button type="button" class="btn wide" data-act="category">Add category</button>`,
+    <button type="button" class="btn wide" data-act="category">${svg('i-add')}Add category</button>`,
     save() {},
   });
 }
@@ -728,12 +758,14 @@ function syncSheet() {
   openSheet({
     title: 'Sync with GitHub',
     saveLabel: 'Sync',
-    body: `<label class="field"><span class="field-label">Private repo</span>
-        <input name="repo" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="owner/lts-data" value="${esc(cfg.repo)}"></label>
-      <label class="field"><span class="field-label">Access token</span>
-        <input name="token" type="password" autocomplete="off" placeholder="github_pat_..." value="${esc(cfg.token)}">
-        <span class="field-hint">Use a fine-grained token limited to that repo, with Contents set to read and write. It stays on this device.</span></label>
-      ${cfg.token ? '<button type="button" class="btn danger" data-act="disconnect">Remove token</button>' : ''}`,
+    body: `<div class="rows form-rows">
+        <label class="grow">${plainTile('i-cloud')}<span>Private repo</span>
+          <input name="repo" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="owner/lts-data" value="${esc(cfg.repo)}"></label>
+        <label class="grow">${plainTile('i-key')}<span>Access token</span>
+          <input name="token" type="password" autocomplete="off" placeholder="github_pat_..." value="${esc(cfg.token)}"></label>
+      </div>
+      <p class="field-hint">Use a fine-grained token limited to that repo, with Contents set to read and write. It stays on this device.</p>
+      ${cfg.token ? `<button type="button" class="btn danger" data-act="disconnect">${svg('i-trash')}Remove token</button>` : ''}`,
     save(f) {
       const repo = f.get('repo').trim();
       const token = f.get('token').trim();
@@ -751,7 +783,7 @@ function categorySheet(c) {
     title: c ? 'Edit category' : 'Add category',
     focus: 'name',
     body: `<label class="field"><span class="field-label">Name</span><input name="name" autocomplete="off" value="${esc(c?.name)}"></label>
-      ${c ? `<button type="button" class="btn danger" data-act="archive-category" data-id="${esc(c.id)}">Remove category</button>` : ''}`,
+      ${c ? `<button type="button" class="btn danger" data-act="archive-category" data-id="${esc(c.id)}">${svg('i-trash')}Remove category</button>` : ''}`,
     save(f) {
       const name = f.get('name').trim();
       if (!name) return ['name', 'Enter a name.'];
@@ -795,7 +827,7 @@ function savePlanForm(form) {
 /* Actions */
 
 const ACTIONS = {
-  tab(el) { ui.tab = el.dataset.tab; ui.category = null; ui.cycleBack = 0; render(); scrollTo(0, 0); },
+  tab(el) { ui.tab = el.dataset.tab; ui.category = null; ui.cycleBack = 0; render(); scrollTo(0, 0); fillIn(); },
   add() { entrySheet(); },
   edit(el) { entrySheet(data.tx.find(t => t.id === el.dataset.id)); },
   account(el) { accountSheet(data.accounts.find(a => a.id === el.dataset.id), el.dataset.kind); },
@@ -806,7 +838,7 @@ const ACTIONS = {
   category(el) { categorySheet(data.categories.find(c => c.id === el.dataset.id)); },
   categories() { categoriesSheet(); },
   'sync-settings'() { syncSheet(); },
-  cycle(el) { ui.cycleBack += Number(el.dataset.step); ui.category = null; render(); },
+  cycle(el) { ui.cycleBack += Number(el.dataset.step); ui.category = null; render(); fillIn(); },
   filter(el) { ui.category = ui.category === el.dataset.id ? null : el.dataset.id; render(); },
   'move-leftover'(el) { entrySheet(null, { type: 'transfer', amount: Number(el.dataset.amount), leftover: true }); },
   'dismiss-leftover'(el) { data.dismissed[el.dataset.id] = true; commit(); },
@@ -961,5 +993,6 @@ document.addEventListener('visibilitychange', () => {
 });
 
 render();
+fillIn();
 sync();
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});

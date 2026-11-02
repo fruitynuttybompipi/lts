@@ -116,7 +116,7 @@ h1 { font-size: var(--t-title); line-height: 1.1; font-weight: 700; letter-spaci
 .hero > .hero-sub { margin-top: var(--s-2); font-size: var(--t-meta); }
 
 .pace { position: relative; height: 8px; margin-top: var(--s-4); border-radius: 4px; background: var(--surface-up); }
-.pace-fill { display: block; height: 100%; min-width: 8px; border-radius: 4px; background: var(--gain); }
+.pace-fill { display: block; height: 100%; min-width: 8px; border-radius: 4px; background: var(--gain); transform-origin: 0 50%; }
 .pace[data-pace="fast"] .pace-fill { background: var(--caution); }
 .pace[data-pace="over"] .pace-fill { background: var(--alert); }
 .pace-now { position: absolute; top: -3px; width: 2px; height: 14px; margin-left: -1px; border-radius: 1px; background: var(--text); box-shadow: 0 0 0 1px var(--ground); }
@@ -125,6 +125,7 @@ h1 { font-size: var(--t-title); line-height: 1.1; font-weight: 700; letter-spaci
 .pace-word[data-pace="fast"] { color: var(--caution); }
 .pace-word[data-pace="over"] { color: var(--alert); }
 
+.mix, .cat-bar { transform-origin: 0 50%; }
 .mix { display: flex; gap: 2px; height: 10px; margin-top: var(--s-4); }
 .mix span { min-width: 4px; background: var(--stroke); }
 .mix span:first-child { border-radius: 4px 0 0 4px; }
@@ -226,6 +227,7 @@ h1 { font-size: var(--t-title); line-height: 1.1; font-weight: 700; letter-spaci
 .empty { color: var(--text-soft); padding: var(--s-3) 0; }
 
 .notice { background: var(--surface); border-radius: var(--r-card); padding: var(--s-4); margin-top: var(--s-5); display: grid; gap: var(--s-3); }
+.notice-head { display: flex; gap: var(--s-3); align-items: flex-start; }
 .notice-actions { display: flex; gap: var(--s-2); }
 
 .rows { list-style: none; margin: 0; padding: 0 var(--s-4); background: var(--surface); border-radius: var(--r-card); }
@@ -246,6 +248,7 @@ h1 { font-size: var(--t-title); line-height: 1.1; font-weight: 700; letter-spaci
 .sum-table { width: 100%; border-collapse: collapse; }
 .sum-table th, .sum-table td { padding: var(--s-2) 0; border-top: 1px solid var(--line); }
 .sum-table tr:first-child th, .sum-table tr:first-child td { border-top: 0; }
+.sum-table th .icon { width: 18px; height: 18px; margin-right: var(--s-2); vertical-align: -4px; }
 .sum-table th { font-weight: 400; text-align: left; color: var(--text-soft); overflow-wrap: anywhere; }
 .sum-table td { text-align: right; white-space: nowrap; padding-left: var(--s-3); }
 .sum-table .total th, .sum-table .total td { color: var(--text); font-weight: 600; }
@@ -285,6 +288,8 @@ summary::-webkit-details-marker { display: none; }
 }
 .btn.primary { background: var(--text); color: var(--ground); }
 .btn.wide { width: 100%; margin-top: var(--s-3); }
+.btn { gap: var(--s-2); }
+.btn .icon { width: 20px; height: 20px; }
 .btn.danger { width: 100%; margin-top: var(--s-5); background: none; color: var(--alert); border: 1px solid var(--alert); }
 
 .field { display: block; margin-top: var(--s-4); }
@@ -310,8 +315,9 @@ dialog .field select { background-color: var(--surface-up); }
   min-height: 52px;
 }
 .grow + .grow { border-top: 1px solid var(--line); }
-.grow > span { flex: 1 1 auto; min-width: 0; }
-.grow:has(select) > span { flex: none; }
+.grow > .tile { flex: none; }
+.grow > span:not(.tile) { flex: 1 1 auto; min-width: 0; }
+.grow:has(select) > span:not(.tile) { flex: none; }
 .grow input:not([type="checkbox"]), .grow select {
   flex: 0 1 46%; min-width: 0; min-height: 44px;
   border: 0; border-radius: var(--s-2);
@@ -328,6 +334,7 @@ dialog .field select { background-color: var(--surface-up); }
   text-overflow: ellipsis;
 }
 dialog .form-rows { background: var(--surface-up); }
+dialog .form-rows .tile { background: rgb(255 255 255 / .1); }
 dialog .grow + .grow { border-color: var(--stroke); }
 .form-note { margin-top: var(--s-2); }
 .field-hint { display: block; margin-top: var(--s-1); font-size: var(--t-meta); color: var(--text-soft); }
@@ -433,7 +440,8 @@ body:has(dialog[open]) { overflow: hidden; }
 .seg { display: flex; flex-wrap: wrap; gap: 2px; padding: 2px; border-radius: var(--r-control); background: var(--surface-up); }
 .seg label { position: relative; flex: 1 1 30%; }
 .seg input { position: absolute; opacity: 0; inset: 0; margin: 0; }
-.seg span { display: grid; place-items: center; min-height: 44px; padding: 0 var(--s-2); border-radius: var(--s-2); font-size: var(--t-meta); font-weight: 500; }
+.seg label > span { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; padding: 0 var(--s-2); border-radius: var(--s-2); font-size: var(--t-meta); font-weight: 500; }
+.seg .icon { width: 16px; height: 16px; }
 .seg input:checked + span { background: var(--text); color: var(--ground); font-weight: 600; }
 .seg input:focus-visible + span { outline: 2px solid var(--text); }
 
@@ -441,7 +449,11 @@ fieldset.field { margin-top: var(--s-4); }
 .chips { display: flex; flex-wrap: wrap; gap: var(--s-2); }
 .chips label { position: relative; }
 .chips input { position: absolute; opacity: 0; inset: 0; margin: 0; }
-.chips span { display: grid; place-items: center; min-height: 44px; padding: 0 var(--s-4); border-radius: 22px; border: 1px solid var(--stroke); font-size: var(--t-meta); font-weight: 500; }
+.chips .badge, .chips .tile { width: 28px; height: 28px; border-radius: 50%; }
+.chips .badge .icon, .chips .tile .icon { width: 16px; height: 16px; }
+.chips .mono { font-size: 9px !important; }
+.chips input:checked + span .tile:not([style]) { background: rgb(0 0 0 / .1); color: var(--ground); }
+.chips label > span { display: flex; align-items: center; gap: var(--s-2); min-height: 44px; padding: 0 var(--s-4) 0 var(--s-2); border-radius: 22px; border: 1px solid var(--stroke); font-size: var(--t-meta); font-weight: 500; }
 .chips input:checked + span { background: var(--text); border-color: var(--text); color: var(--ground); font-weight: 600; }
 .chips input:focus-visible + span { outline: 2px solid var(--text); outline-offset: 2px; }
 
@@ -466,6 +478,8 @@ form:not([data-type="card"]) .only-card { display: none; }
   transition: opacity .2s, transform .2s cubic-bezier(.16, 1, .3, 1);
 }
 #toast.show { opacity: 1; transform: none; pointer-events: auto; }
+.toast-text { display: flex; align-items: center; gap: var(--s-2); }
+.toast-text .icon { width: 20px; height: 20px; color: var(--gain); }
 #toast button { min-height: 44px; color: var(--link); font-weight: 600; }
 
 .acct:active:not(:disabled), .btn:active, .tabs .add:active { filter: brightness(.82); }
