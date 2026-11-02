@@ -102,7 +102,7 @@ h1 { font-size: var(--t-title); line-height: 1.15; font-weight: 700; letter-spac
 .acct {
   position: relative;
   width: 100%; min-height: 72px;
-  display: flex; justify-content: space-between; align-items: flex-start; gap: var(--s-3);
+  display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: var(--s-1) var(--s-3);
   padding: var(--s-3) var(--s-4) calc(var(--s-5) + var(--s-2));
   border-radius: var(--r-card);
   background: var(--card-bank);
@@ -114,10 +114,10 @@ h1 { font-size: var(--t-title); line-height: 1.15; font-weight: 700; letter-spac
 .acct[data-type="card"] { background: var(--card-credit); }
 .acct[data-type="ewallet"] { background: var(--card-wallet); }
 .acct[data-type="bank"] { background: var(--card-bank); }
-.acct-main { min-width: 0; }
+.acct-main { flex: 1 1 11ch; min-width: 0; }
 .acct-name { display: block; font-weight: 600; overflow-wrap: anywhere; }
 .acct-type { display: block; font-size: var(--t-meta); }
-.acct-balance { font-weight: 600; white-space: nowrap; }
+.acct-balance { margin-left: auto; font-weight: 600; white-space: nowrap; }
 .acct-unit { font-weight: 400; }
 
 .acct.ghost {
