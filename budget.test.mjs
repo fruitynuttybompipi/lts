@@ -32,7 +32,6 @@ test('matches the worked example', () => {
   assert.equal(s.budget, sen(2000));
   assert.equal(s.left, sen(1200));
   assert.equal(s.days, 15);
-  assert.equal(s.perDay, sen(80));
 });
 
 test('transfers, bill payments and corrections are not spending', () => {

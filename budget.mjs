@@ -129,7 +129,7 @@ export function summary(data, today) {
   const hasPrior = prior.start >= data.meta.setupDate && spentIn(data, prior) > 0;
   return {
     cycle, salary: plan.salary, commitments, afterCommitments: plan.salary - commitments,
-    savings, income, budget, spent, left, days, perDay: Math.floor(Math.max(0, left) / days),
+    savings, income, budget, spent, left, days,
     pace: pace(spent, budget, today, cycle),
     leftover: hasPrior ? Math.max(0, spendingBudget(data, prior) - spentIn(data, prior)) : 0,
     prior: hasPrior ? prior : null,

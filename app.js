@@ -119,12 +119,10 @@ const byNewest = (a, b) => b.date.localeCompare(a.date) || b.updatedAt - a.updat
 const entries = () => data.tx.filter(t => t.type !== 'adjust').sort(byNewest);
 
 function accountCard(a, bal) {
-  const owed = a.type === 'card';
   const type = { bank: 'Bank', card: 'Credit card', ewallet: 'E-wallet' }[a.type];
-  const shown = owed ? Math.max(0, -bal) : bal;
   return `<li><button class="acct" data-type="${a.type}" data-act="account" data-id="${esc(a.id)}">
     <span class="acct-main"><span class="acct-name">${esc(a.name)}</span><span class="acct-type">${type}</span></span>
-    <span class="acct-balance">${owed ? `${money(shown)} <span class="acct-unit">owed</span>` : money(shown)}</span>
+    <span class="acct-balance">${money(bal)}</span>
   </button></li>`;
 }
 
@@ -145,7 +143,7 @@ function hero(s, today) {
     </div>
     <p class="pace-row">
       <span class="pace-word" data-pace="${s.pace.state}">${PACE_WORDS[s.pace.state]}</span>
-      <span>${over ? '' : `<b>${money(s.perDay)}</b> a day · `}${payday ? 'payday today' : `${s.days} ${dayWord} to payday`}</span>
+      <span>${payday ? 'Payday today' : `${s.days} ${dayWord} to payday`}</span>
     </p>
   </section>`;
 }

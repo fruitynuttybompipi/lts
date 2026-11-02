@@ -115,7 +115,6 @@ h1 { font-size: var(--t-title); line-height: 1.1; font-weight: 700; letter-spaci
 .pace[data-pace="over"] .pace-fill { background: var(--alert); }
 .pace-now { position: absolute; top: -3px; width: 2px; height: 14px; margin-left: -1px; border-radius: 1px; background: var(--text); box-shadow: 0 0 0 1px var(--ground); }
 .pace-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0 var(--s-3); margin-top: var(--s-2); font-size: var(--t-meta); color: var(--text-soft); }
-.pace-row b { color: var(--text); font-weight: 600; white-space: nowrap; }
 .pace-word { font-weight: 600; color: var(--gain); }
 .pace-word[data-pace="fast"] { color: var(--caution); }
 .pace-word[data-pace="over"] { color: var(--alert); }
@@ -178,7 +177,6 @@ h1 { font-size: var(--t-title); line-height: 1.1; font-weight: 700; letter-spaci
 .acct-name { display: block; font-weight: 600; overflow-wrap: anywhere; }
 .acct-type { display: block; font-size: var(--t-meta); }
 .acct-balance { margin-left: auto; font-weight: 600; white-space: nowrap; }
-.acct-unit { font-weight: 400; }
 
 .acct.ghost {
   background: var(--ground);
