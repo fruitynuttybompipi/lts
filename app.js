@@ -275,7 +275,7 @@ function viewPlan() {
     <div class="rows form-rows">
       <label class="grow"><span>Take-home salary</span>
         <input name="salary" inputmode="decimal" autocomplete="off" aria-describedby="plan-error" value="${setup ? inputAmount(plan.salary) : ''}" placeholder="RM 0"></label>
-      <label class="grow"><span>Payday</span>
+      <label class="grow"><span>Payday, day of month</span>
         <input name="payday" inputmode="numeric" autocomplete="off" aria-describedby="plan-error" value="${data.meta.payday ?? ''}" placeholder="Day 1 to 31"></label>
       ${banks.length ? `<label class="grow"><span>Salary goes into</span>
         <select name="salaryAccount"><option value="">Choose</option>${banks.map(a => `<option value="${esc(a.id)}" ${a.id === data.meta.salaryAccountId ? 'selected' : ''}>${esc(a.name)}</option>`).join('')}</select></label>` : ''}
