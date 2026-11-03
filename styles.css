@@ -59,6 +59,12 @@
 [hidden] { display: none !important; }
 
 html { -webkit-text-size-adjust: 100%; scrollbar-color: var(--line) var(--ground); }
+/* WebKit bug 301108: an installed page shorter than the screen gets a viewport one status bar too short,
+   leaving fixed bars above the bottom edge. A taller page restores it; the cap stops scrolling elsewhere. */
+@media (display-mode: standalone) {
+  html { min-height: min(100lvh, calc(100% + env(safe-area-inset-top))); }
+}
+
 /* Lets the iPhone text size setting scale every rem. */
 @supports (font: -apple-system-body) { html { font: -apple-system-body; } }
 
@@ -390,8 +396,6 @@ dialog .grow + .grow { border-color: var(--stroke); }
   background: var(--surface);
   border-top: 1px solid var(--line);
 }
-/* If iOS leaves a gap under the bar, its colour runs on to the screen edge. */
-.tabs::after { content: ""; position: absolute; inset: 100% 0 auto; height: 120px; background: inherit; }
 .tabs button {
   display: grid; justify-items: center; gap: 2px;
   min-width: 56px; min-height: 48px;
@@ -431,7 +435,6 @@ dialog[open] { animation: sheet-up .28s cubic-bezier(.16, 1, .3, 1); }
 @keyframes sheet-up { from { transform: translateY(32px); opacity: 0; } }
 dialog::backdrop { background: var(--scrim); }
 dialog:focus-visible { outline: 0; }
-body:has(dialog[open]) { overflow: hidden; }
 
 .sheet-head {
   position: sticky; top: 0; z-index: 1;

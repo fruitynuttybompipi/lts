@@ -1,4 +1,4 @@
-const CACHE = 'left-to-spend-v4';
+const CACHE = 'left-to-spend-v5';
 const FILES = ['./', 'index.html', 'styles.css', 'app.js', 'budget.mjs', 'manifest.webmanifest', 'fonts/manrope.woff2', 'icons/icon-180.png', 'icons/icon-192.png'];
 
 self.addEventListener('install', e => e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting())));
@@ -14,7 +14,8 @@ self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET' || url.origin !== location.origin) return;
   e.respondWith(caches.open(CACHE).then(async cache => {
     const hit = await cache.match(e.request, { ignoreSearch: true });
-    const fresh = fetch(e.request).then(r => { if (r.ok) cache.put(e.request, r.clone()); return r; });
+    // no-cache skips GitHub Pages' 10-minute HTTP cache, so fixes arrive on the next open.
+    const fresh = fetch(e.request.url, { cache: 'no-cache' }).then(r => { if (r.ok) cache.put(e.request, r.clone()); return r; });
     if (!hit) return fresh;
     return Promise.race([fresh.catch(() => hit), new Promise(r => setTimeout(() => r(hit), 1500))]);
   }));
