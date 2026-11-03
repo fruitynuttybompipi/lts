@@ -401,6 +401,8 @@ dialog .grow + .grow { border-color: var(--stroke); }
   background: var(--surface);
   border-top: 1px solid var(--line);
 }
+/* If iOS leaves a gap under the bar, its colour runs on to the screen edge. */
+.tabs::after { content: ""; position: absolute; inset: 100% 0 auto; height: 120px; background: inherit; }
 .tabs button {
   display: grid; justify-items: center; gap: 2px;
   min-width: 56px; min-height: 48px;
@@ -1747,6 +1749,9 @@ document.addEventListener('click', e => {
 
 // Focus would otherwise fall to the page when the button that opened a sheet was redrawn.
 sheet.addEventListener('close', () => {
+  // Clear keyboard offsets, and nudge iOS, which can leave fixed bars raised after the keyboard closes.
+  sheet.style.bottom = sheet.style.maxHeight = '';
+  scrollTo(scrollX, scrollY);
   if (!sheetOpener?.isConnected) $('.tabs [aria-current="page"]')?.focus();
 });
 

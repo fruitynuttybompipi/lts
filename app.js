@@ -904,6 +904,9 @@ document.addEventListener('click', e => {
 
 // Focus would otherwise fall to the page when the button that opened a sheet was redrawn.
 sheet.addEventListener('close', () => {
+  // Clear keyboard offsets, and nudge iOS, which can leave fixed bars raised after the keyboard closes.
+  sheet.style.bottom = sheet.style.maxHeight = '';
+  scrollTo(scrollX, scrollY);
   if (!sheetOpener?.isConnected) $('.tabs [aria-current="page"]')?.focus();
 });
 

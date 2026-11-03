@@ -390,6 +390,8 @@ dialog .grow + .grow { border-color: var(--stroke); }
   background: var(--surface);
   border-top: 1px solid var(--line);
 }
+/* If iOS leaves a gap under the bar, its colour runs on to the screen edge. */
+.tabs::after { content: ""; position: absolute; inset: 100% 0 auto; height: 120px; background: inherit; }
 .tabs button {
   display: grid; justify-items: center; gap: 2px;
   min-width: 56px; min-height: 48px;
